@@ -4,7 +4,7 @@ import { twMerge } from 'tailwind-merge'
 
 const buttonVariants = cva(
   [
-    'flex cursor-pointer items-center justify-center rounded-md px-4 py-2 transition-all duration-200',
+    'flex cursor-pointer items-center justify-center gap-3 rounded-md px-4 py-2 transition-all duration-200',
   ],
   {
     variants: {
@@ -16,7 +16,7 @@ const buttonVariants = cva(
       size: {
         sm: 'text-sm',
         md: 'text-base',
-        lg: 'text-lg',
+        lg: 'py-3 text-lg',
       },
       fullWidth: {
         true: 'w-full',
