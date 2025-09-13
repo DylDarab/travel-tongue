@@ -1,10 +1,10 @@
 import { HydrateClient } from '@/trpc/server'
 import { auth } from '@/server/auth'
-import { isUserProfileComplete } from '@/server/api/services/userRepo'
 import { redirect } from 'next/navigation'
 import { CloudLightning, MessageCircle, Mic, Shield } from 'lucide-react'
 import FeatureCard from './_components/FeatureCard'
 import GoogleLogin from './_components/GoogleLogin'
+import { isUserProfileComplete } from '@/server/api/services/userService'
 
 export default async function Home() {
   const session = await auth()
