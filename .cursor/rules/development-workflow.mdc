@@ -1,0 +1,62 @@
+---
+description: Development workflow and tooling
+---
+
+# Development Workflow
+
+## Package Manager
+
+- **pnpm**: Use `pnpm` for all package management (see [package.json](mdc:package.json))
+- **Scripts**: Use defined scripts in package.json for consistency
+
+## Available Scripts
+
+```bash
+# Development
+pnpm dev          # Start dev server with Turbo
+pnpm build        # Production build
+pnpm start        # Start production server
+pnpm preview      # Build and start preview
+
+# Code Quality
+pnpm lint         # ESLint check
+pnpm lint:fix     # Auto-fix ESLint issues
+pnpm format:check # Prettier check
+pnpm format:write # Auto-format with Prettier
+pnpm check        # Lint + TypeScript check
+pnpm typecheck    # TypeScript check only
+
+# Database
+pnpm db:generate  # Generate Drizzle migrations
+pnpm db:migrate   # Run migrations
+pnpm db:push      # Push schema changes
+pnpm db:studio    # Open Drizzle Studio
+```
+
+## Code Quality Tools
+
+- **ESLint**: Next.js config with TypeScript rules
+- **Prettier**: Auto-formatting with Tailwind plugin
+- **TypeScript**: Strict mode with path aliases
+- **Drizzle**: Database linting with drizzle plugin
+
+## Git Workflow
+
+- **Branch**: Work on feature branches
+- **Commits**: Use conventional commit messages
+- **Pre-commit**: Run `pnpm check` before committing
+- **CI/CD**: Ensure all checks pass in CI
+
+## Environment Setup
+
+- **Node.js**: Use Node.js 18+ for Next.js 15 compatibility
+- **Database**: PostgreSQL with Drizzle ORM
+- **Auth**: NextAuth v5 beta with Google OAuth
+- **Environment**: Use `@t3-oss/env-nextjs` for env validation
+
+## Development Tips
+
+- Use `--turbo` flag for faster dev builds
+- Use Drizzle Studio for database inspection
+- Use tRPC DevTools for API debugging
+- Use React DevTools for component debugging

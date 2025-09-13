@@ -1,8 +1,8 @@
-import { userUpdateSchema } from '@/lib/schemas/user'
+import { userUpdateSchema } from '@/server/schemas/user'
 import { createTRPCRouter, protectedProcedure } from '@/server/api/trpc'
 import { users } from '@/server/db/schema/auth'
 import { eq } from 'drizzle-orm'
-import { updateUserProfile } from '../repositories/userRepo'
+import { updateUserProfile } from '../services/userRepo'
 
 export const usersRouter = createTRPCRouter({
   getUserProfile: protectedProcedure.query(async ({ ctx }) => {

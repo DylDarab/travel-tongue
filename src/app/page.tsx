@@ -1,6 +1,6 @@
 import { HydrateClient } from '@/trpc/server'
 import { auth } from '@/server/auth'
-import { isUserProfileComplete } from '@/server/api/repositories/userRepo'
+import { isUserProfileComplete } from '@/server/api/services/userRepo'
 import { redirect } from 'next/navigation'
 import { CloudLightning, MessageCircle, Mic, Shield } from 'lucide-react'
 import FeatureCard from './_components/FeatureCard'

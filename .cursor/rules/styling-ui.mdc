@@ -1,0 +1,58 @@
+---
+globs: *.tsx,*.css
+---
+
+# Styling & UI Component Rules
+
+## Tailwind CSS
+
+- **Framework**: Tailwind CSS v4 with PostCSS
+- **Config**: [postcss.config.js](mdc:postcss.config.js) and [prettier.config.js](mdc:prettier.config.js)
+- **Global Styles**: [src/styles/globals.css](mdc:src/styles/globals.css)
+- **Theme**: Teal color scheme (`teal-500`, `teal-50`)
+
+## Component Library
+
+Reusable components in [src/components/](mdc:src/components/):
+
+- **Button**: [src/components/Button/index.tsx](mdc:src/components/Button/index.tsx)
+- **TextInput**: [src/components/TextInput/index.tsx](mdc:src/components/TextInput/index.tsx)
+- **Textarea**: [src/components/Textarea/index.tsx](mdc:src/components/Textarea/index.tsx)
+- **SelectInput**: [src/components/SelectInput/index.tsx](mdc:src/components/SelectInput/index.tsx)
+- **MultipleSelectChips**: [src/components/MultipleSelectChips/index.tsx](mdc:src/components/MultipleSelectChips/index.tsx)
+
+## UI Patterns
+
+- **Form Layout**: Use `space-y-6` for form sections
+- **Centered Content**: `mx-auto max-w-3xl` for main content width
+- **Icons**: Use Lucide React icons with consistent sizing
+- **Cards**: Use rounded borders and proper spacing
+- **Colors**: Stick to the teal theme with gray text hierarchy
+
+## Component Structure
+
+```tsx
+// Standard component structure
+const ComponentName = ({ prop1, prop2 }: Props) => {
+  return (
+    <div className="space-y-6">
+      <div className="text-center">{/* Header with icon */}</div>
+      <div className="space-y-6">{/* Form fields */}</div>
+    </div>
+  )
+}
+```
+
+## Responsive Design
+
+- Mobile-first approach with Tailwind responsive prefixes
+- Use `max-w-3xl` for content containers
+- Ensure touch-friendly button sizes (min 44px)
+- Test on mobile devices for travel app usage
+
+## Accessibility
+
+- Use proper semantic HTML elements
+- Include `aria-label` for icon buttons
+- Ensure proper color contrast ratios
+- Use focus states for keyboard navigation

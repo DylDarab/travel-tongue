@@ -1,0 +1,43 @@
+---
+description: Database schema and Drizzle ORM patterns
+---
+
+# Database & Drizzle ORM Rules
+
+## Schema Structure
+
+The database schema is defined in [src/server/db/schema/](mdc:src/server/db/schema/) with these main entities:
+
+- **Users**: Authentication and user profiles
+- **Scenarios**: Travel conversation scenarios with phrases
+- **Phrases**: Individual phrases within scenarios (local + target language)
+- **Conversations**: User conversation sessions
+- **Messages**: Individual messages within conversations
+
+## Drizzle Patterns
+
+- **Table Creation**: Use `createTable` helper with `tt_` prefix
+- **Relations**: Define relations in schema files for type-safe joins
+- **Indexes**: Add performance indexes for common queries
+- **Timestamps**: Use `timestamp` with timezone and `$onUpdate` for updatedAt
+- **UUIDs**: Use `gen_random_uuid()` for primary keys
+
+## Database Operations
+
+- **Queries**: Use tRPC routers in [src/server/api/routers/](mdc:src/server/api/routers/)
+- **Repositories**: Business logic in [src/server/api/repositories/](mdc:src/server/api/repositories/)
+- **Migrations**: Use `pnpm db:generate` and `pnpm db:migrate`
+- **Studio**: Use `pnpm db:studio` for database inspection
+
+## Schema Conventions
+
+- **Naming**: snake_case for database columns, camelCase for TypeScript
+- **Foreign Keys**: Use `references()` with proper cascade deletes
+- **Enums**: Define in [src/server/db/schema/enums.ts](mdc:src/server/db/schema/enums.ts)
+- **JSON Fields**: Use `jsonb` for flexible data storage
+
+## Type Safety
+
+- Import schema types from `@/server/db/schema/`
+- Use Drizzle's type inference for queries
+- Validate inputs with Zod schemas before database operations

@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+---
+
+# Travel Tongue Project Structure
+
+This is a Next.js 15 app with tRPC, Drizzle ORM, and NextAuth. Don't mess up the architecture.
+
+## Key Files & Directories
+
+- **App Router**: [src/app/](mdc:src/app/) - Next.js 15 app directory structure
+- **Components**: [src/components/](mdc:src/components/) - Reusable UI components
+- **Server Logic**: [src/server/](mdc:src/server/) - tRPC routers, database schema, auth config
+- **Database**: [src/server/db/schema/](mdc:src/server/db/schema/) - Drizzle schema definitions
+- **Constants**: [src/constants.ts](mdc:src/constants.ts) - App-wide constants (languages, preferences, etc.)
+- **Onboarding**: [src/app/onboarding/](mdc:src/app/onboarding/) - Multi-step user onboarding flow
+
+## Architecture Patterns
+
+- **tRPC**: All API calls go through tRPC routers in [src/server/api/routers/](mdc:src/server/api/routers/)
+- **Database**: Use Drizzle ORM with PostgreSQL, schema in [src/server/db/schema/](mdc:src/server/db/schema/)
+- **Auth**: NextAuth v5 beta with Google OAuth, config in [src/server/auth/](mdc:src/server/auth/)
+- **Forms**: React Hook Form with Zod validation (see [src/app/onboarding/\_hooks/types.ts](mdc:src/app/onboarding/_hooks/types.ts))
+- **State**: Zustand for client state, tRPC for server state
+
+## File Naming Conventions
+
+- Components: PascalCase directories with `index.tsx` (e.g., `TextInput/index.tsx`)
+- Pages: `page.tsx` for route components
+- Hooks: `use*.tsx` files in `_hooks/` directories
+- Types: `types.ts` files co-located with components
+- Constants: UPPER_SNAKE_CASE exports in [src/constants.ts](mdc:src/constants.ts)
+
+## Import Paths
+
+- Use `@/` alias for src directory imports
+- Server-only imports use `server-only` package
+- Database imports from `@/server/db/`

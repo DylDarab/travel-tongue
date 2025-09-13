@@ -1,7 +1,18 @@
 import { relations, sql } from 'drizzle-orm'
 import { index, jsonb, pgTableCreator, timestamp } from 'drizzle-orm/pg-core'
-import { messageRoleEnum, messageSourceEnum } from './enums'
 import { accounts, users } from './auth'
+
+export type MessageRole = 'user' | 'local' | 'system'
+
+export interface Message {
+  id: string
+  role: MessageRole
+  messageLang: string
+  translatedText: string
+  localDialogue: string
+  timestamp: Date
+  meta?: Record<string, unknown>
+}
 
 export const createTable = pgTableCreator((name) => `tt_${name}`)
 
@@ -74,6 +85,10 @@ export const conversations = createTable(
 
     targetLang: d.varchar('target_lang', { length: 16 }).notNull(),
     scenarioSnapshot: jsonb('scenario_snapshot'),
+    messages: jsonb('messages')
+      .$type<Message[]>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
 
     startedAt: timestamp('started_at', { withTimezone: true })
       .default(sql`now()`)
@@ -85,32 +100,6 @@ export const conversations = createTable(
     index('conversations_user_started_idx').on(t.userId, t.startedAt),
     index('conversations_target_lang_idx').on(t.targetLang),
   ],
-)
-
-export const messages = createTable(
-  'messages',
-  (d) => ({
-    id: d
-      .uuid()
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    conversationId: d
-      .uuid('conversation_id')
-      .notNull()
-      .references(() => conversations.id, { onDelete: 'cascade' }),
-
-    role: messageRoleEnum('role').notNull(),
-    lang: d.varchar({ length: 16 }).notNull(),
-    text: d.text().notNull(),
-    ts: timestamp('ts', { withTimezone: true })
-      .default(sql`now()`)
-      .notNull(),
-
-    source: messageSourceEnum('source'),
-    audioKey: d.text('audio_key'),
-    meta: jsonb(),
-  }),
-  (t) => [index('messages_conversation_ts_idx').on(t.conversationId, t.ts)],
 )
 
 export const scenariosRelations = relations(scenarios, ({ one, many }) => ({
@@ -125,21 +114,10 @@ export const phrasesRelations = relations(phrases, ({ one }) => ({
   }),
 }))
 
-export const conversationsRelations = relations(
-  conversations,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [conversations.userId],
-      references: [users.id],
-    }),
-    messages: many(messages),
-  }),
-)
-
-export const messagesRelations = relations(messages, ({ one }) => ({
-  conversation: one(conversations, {
-    fields: [messages.conversationId],
-    references: [conversations.id],
+export const conversationsRelations = relations(conversations, ({ one }) => ({
+  user: one(users, {
+    fields: [conversations.userId],
+    references: [users.id],
   }),
 }))
 

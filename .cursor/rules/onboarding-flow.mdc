@@ -1,0 +1,61 @@
+---
+description: Onboarding form patterns and multi-step flow
+---
+
+# Onboarding Flow Architecture
+
+The onboarding system is a multi-step form with the following structure:
+
+## File Organization
+
+- **Main Page**: [src/app/onboarding/page.tsx](mdc:src/app/onboarding/page.tsx)
+- **Form Logic**: [src/app/onboarding/\_hooks/useOnboardingForm.tsx](mdc:src/app/onboarding/_hooks/useOnboardingForm.tsx)
+- **Types**: [src/app/onboarding/\_hooks/types.ts](mdc:src/app/onboarding/_hooks/types.ts)
+- **Store**: [src/app/onboarding/\_stores/index.tsx](mdc:src/app/onboarding/_stores/index.tsx)
+- **Steps**: [src/app/onboarding/\_components/](mdc:src/app/onboarding/_components/)
+
+## Form Schema
+
+The onboarding form uses Zod validation with this structure:
+
+```typescript
+// From src/app/onboarding/_hooks/types.ts
+{
+  displayName: string
+  realName: string
+  gender: 'male' | 'female' | 'nonbinary' | 'prefer_not_to_say'
+  preferredLanguage: string
+  travelPreferences: string[]
+  foodAllergies: string
+  religion: string
+  personalNotes: string
+}
+```
+
+## Step Components
+
+- **PersonalInfoStep**: Basic user information
+- **TravelPreferencesStep**: Travel preferences and dietary restrictions
+- **AdditionalContextStep**: Personal notes and context
+
+## Form Patterns
+
+- Use React Hook Form with `useFormContext` for step communication
+- Validate with Zod schemas at each step
+- Store form state in Zustand for persistence across steps
+- Use `watch()` and `setValue()` for controlled components
+
+## Constants Usage
+
+- **Languages**: Import from [src/constants.ts](mdc:src/constants.ts) - `LANGUAGES` array
+- **Travel Preferences**: Use `TRAVEL_PREFERENCES` for multi-select options
+- **Gender Options**: Use `GENDER` array for gender selection
+
+## Component Structure
+
+Each step component should:
+
+1. Use `useFormContext<OnboardingFormData>()`
+2. Watch relevant form fields with `watch()`
+3. Use `setValue()` for programmatic updates
+4. Include proper validation and error handling

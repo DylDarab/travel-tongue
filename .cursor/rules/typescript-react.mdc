@@ -1,0 +1,54 @@
+---
+globs: *.ts,*.tsx
+---
+
+# TypeScript & React Rules
+
+## TypeScript Standards
+
+- **Strict Mode**: This project uses strict TypeScript with `noUncheckedIndexedAccess`
+- **No `any`**: If you use `any`, you've already lost
+- **Proper Types**: Use Zod schemas for runtime validation, infer types from them
+- **Server Types**: Use `server-only` for server-side code to prevent client leaks
+
+## React Patterns
+
+- **Client Components**: Use `'use client'` directive only when necessary
+- **Server Components**: Default to server components, only use client for interactivity
+- **Form Handling**: Use React Hook Form with Zod validation (see [src/app/onboarding/\_hooks/types.ts](mdc:src/app/onboarding/_hooks/types.ts))
+- **State Management**:
+  - Server state: tRPC queries/mutations
+  - Client state: Zustand stores in `_stores/` directories
+  - Form state: React Hook Form context
+
+## Component Structure
+
+```tsx
+// Component file structure
+const ComponentName = () => {
+  // Hooks first
+  const { data } = api.example.useQuery()
+
+  // Event handlers
+  const handleClick = () => {}
+
+  // Render
+  return <div>...</div>
+}
+
+export default ComponentName
+```
+
+## Import Order
+
+1. React/Next.js imports
+2. Third-party libraries
+3. Internal imports with `@/` alias
+4. Relative imports
+5. Type-only imports last
+
+## Error Handling
+
+- Use tRPC error handling for API calls
+- Wrap forms in error boundaries
+- Use Zod for runtime validation
