@@ -2,6 +2,7 @@ import '@/styles/globals.css'
 
 import { type Metadata } from 'next'
 import { Geist } from 'next/font/google'
+import { SessionProvider } from 'next-auth/react'
 
 import { TRPCReactProvider } from '@/trpc/react'
 
@@ -23,7 +24,10 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body className="bg-teal-50">
         <div className="mx-auto max-w-3xl">
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          {/* @ts-expect-error - SessionProvider is not a valid JSX element */}
+          <SessionProvider>
+            <TRPCReactProvider>{children}</TRPCReactProvider>
+          </SessionProvider>
         </div>
       </body>
     </html>

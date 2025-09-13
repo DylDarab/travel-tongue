@@ -1,9 +1,24 @@
 import { HydrateClient } from '@/trpc/server'
+import { auth } from '@/server/auth'
+import { isUserProfileComplete } from '@/server/api/repositories/userRepo'
+import { redirect } from 'next/navigation'
 import { CloudLightning, MessageCircle, Mic, Shield } from 'lucide-react'
 import FeatureCard from './_components/FeatureCard'
 import GoogleLogin from './_components/GoogleLogin'
 
 export default async function Home() {
+  const session = await auth()
+
+  if (session?.user?.id) {
+    const isProfileComplete = await isUserProfileComplete(session.user.id)
+
+    if (!isProfileComplete) {
+      redirect('/onboarding')
+    }
+
+    redirect('/home')
+  }
+
   return (
     <HydrateClient>
       <main className="mx-auto max-w-2xl bg-teal-50">

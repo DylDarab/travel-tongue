@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'flex bg-teal-600 text-white hover:bg-teal-700',
-        outline: 'border border-gray-300 text-black hover:bg-gray-100',
+        outline: 'border border-gray-300 bg-white text-black hover:bg-gray-100',
         destructive: 'bg-red-500 text-white hover:bg-red-600',
       },
       size: {
@@ -49,7 +49,7 @@ const Button: React.FC<ButtonProps> = ({
   loading,
   onClick,
   size,
-  variant,
+  variant = 'primary',
   disabled,
   className,
   ...buttonProps
