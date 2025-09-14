@@ -1,5 +1,6 @@
 import UserInfoCard from '@/app/(web-app)/_components/UserInfoCard'
 import { GENDER, LANGUAGES, TRAVEL_PREFERENCES } from '@/constants'
+import { TopBar } from '@/app/_components/TopBar'
 import { auth } from '@/server/auth'
 import { api } from '@/trpc/server'
 import { FileText, Heart, User } from 'lucide-react'
@@ -44,44 +45,48 @@ export default async function SettingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 pb-20">
-      <h1 className="mb-8 text-2xl font-bold text-gray-900">Settings</h1>
+    <>
+      <TopBar
+        title="Settings"
+        backButton={false}
+      />
+      <div className="mx-auto max-w-3xl px-4 py-6 pb-20 pt-20">
+        <div className="space-y-6">
+          <UserInfoCard
+            icon={User}
+            title="Profile"
+            description="Your personal information for better conversations."
+            info={{
+              'Display name': user.displayName ?? 'Not specified',
+              'Real name': user.realName ?? 'Not specified',
+              Gender: getGenderLabel(user.gender),
+              'Default language': getLanguageLabel(user.preferredLanguage),
+            }}
+            displayEditButton={true}
+            editHref="/edit-profile"
+          />
 
-      <div className="space-y-6">
-        <UserInfoCard
-          icon={User}
-          title="Profile"
-          description="Your personal information for better conversations."
-          info={{
-            'Display name': user.displayName ?? 'Not specified',
-            'Real name': user.realName ?? 'Not specified',
-            Gender: getGenderLabel(user.gender),
-            'Default language': getLanguageLabel(user.preferredLanguage),
-          }}
-          displayEditButton={true}
-          editHref="/edit-profile"
-        />
+          <UserInfoCard
+            icon={Heart}
+            title="Travel preferences"
+            description="Your travel style and dietary preferences."
+            info={{
+              Preferences: getTravelPreferencesLabels(user.travelPreferences),
+              Allergies: user.foodAllergies ?? 'None specified',
+              Religion: user.religion ?? 'Not specified',
+            }}
+          />
 
-        <UserInfoCard
-          icon={Heart}
-          title="Travel preferences"
-          description="Your travel style and dietary preferences."
-          info={{
-            Preferences: getTravelPreferencesLabels(user.travelPreferences),
-            Allergies: user.foodAllergies ?? 'None specified',
-            Religion: user.religion ?? 'Not specified',
-          }}
-        />
-
-        <UserInfoCard
-          icon={FileText}
-          title="Personal context"
-          description="Additional information for better AI assistance."
-          info={{
-            Notes: user.personalNotes ?? 'No additional context provided',
-          }}
-        />
+          <UserInfoCard
+            icon={FileText}
+            title="Personal context"
+            description="Additional information for better AI assistance."
+            info={{
+              Notes: user.personalNotes ?? 'No additional context provided',
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </>
   )
 }

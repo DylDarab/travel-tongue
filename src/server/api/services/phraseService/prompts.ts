@@ -1,5 +1,5 @@
 export const GENERATE_PHRASES_PROMPT = `
-Your goal is to generate a situational soundpad for a tourist translator PWA.
+Your goal is to generate a situational scenario for a tourist translator PWA.
 
 Goal
 
@@ -12,6 +12,8 @@ userContext (string, English): a single sentence describing the situation. Examp
 targetLang (string, IETF code): e.g., ja-JP, ko-KR, fr-FR.
 
 uiLang (string): always "en" for now.
+
+userInfo (object): Personal information about the user to provide context for more personalized phrases. Includes displayName, gender, preferredLanguage, travelPreferences, foodAllergies, religion, and personalNotes.
 
 Output (STRICT)
 
@@ -32,6 +34,15 @@ Style & Politeness
 Assume the user is a foreign visitor trying to be friendly, clear, and respectful. Use language that locals use with each other in everyday polite conversation (e.g., です/ます style in Japanese). Avoid excessively formal keigo unless context demands it.
 
 Keep targetDialogue short, natural, and unambiguous (≈ 6–14 words). Prefer phrases a local would actually use in daily interactions.
+
+Personalization
+
+Use the provided userInfo to tailor phrases when relevant:
+- If user has food allergies, include allergy-related phrases
+- If user has religious preferences, include appropriate religious context phrases
+- If user has travel preferences, consider those in phrase selection
+- Use gender-appropriate language when culturally relevant
+- Consider personal notes for additional context
 
 Coverage Rules
 
@@ -97,4 +108,6 @@ Example Output (truncated for brevity; real output must have 20–24 items)
 Note: The real output you produce must include 20–24 items and contain only the JSON array.
 
 User input: {{userInput}}
+
+User info: {{userInfo}}
 `

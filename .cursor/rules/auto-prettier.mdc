@@ -1,0 +1,56 @@
+---
+alwaysApply: true
+description: Automatically format code with Prettier after file generation or editing
+---
+
+# Auto-Prettier Formatting Rule
+
+## Overview
+
+This rule ensures that all generated or edited files are automatically formatted using Prettier to maintain consistent code style across the project.
+
+## Implementation
+
+When generating new files or editing existing files, always run `prettier --write` on the affected files to ensure proper formatting.
+
+## Prettier Configuration
+
+- **Config File**: [prettier.config.js](mdc:prettier.config.js)
+- **PostCSS Integration**: [postcss.config.js](mdc:postcss.config.js)
+- **Global Styles**: [src/styles/globals.css](mdc:src/styles/globals.css)
+
+## Commands to Run
+
+After any file generation or editing:
+
+```bash
+# Format specific file
+npx prettier --write path/to/file
+
+# Format all files in project
+npx prettier --write .
+
+# Format specific file types
+npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,md}"
+```
+
+## File Types Covered
+
+- TypeScript/JavaScript: `.ts`, `.tsx`, `.js`, `.jsx`
+- Styling: `.css`, `.scss`, `.less`
+- Configuration: `.json`, `.yaml`, `.yml`
+- Documentation: `.md`, `.mdx`
+
+## Integration with Development Workflow
+
+- Run prettier after creating new components
+- Format files after major refactoring
+- Ensure consistent formatting before commits
+- Use with ESLint for comprehensive code quality
+
+## Best Practices
+
+- Always format files immediately after generation
+- Use `--write` flag to modify files in place
+- Check prettier config for project-specific rules
+- Integrate with pre-commit hooks for automated formatting

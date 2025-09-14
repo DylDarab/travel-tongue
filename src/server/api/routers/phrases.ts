@@ -5,7 +5,13 @@ import { generateScenarioPhrases } from '../services/phraseService'
 export const phrasesRouter = createTRPCRouter({
   generatePhrases: protectedProcedure
     .input(z.object({ scenarioId: z.string().uuid() }))
-    .mutation(async ({ input }) => {
-      return await generateScenarioPhrases(input.scenarioId)
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.session.user) {
+        throw new Error('Unauthorized')
+      }
+      return await generateScenarioPhrases(
+        input.scenarioId,
+        ctx.session.user.id,
+      )
     }),
 })

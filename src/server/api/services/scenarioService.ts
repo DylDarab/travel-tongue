@@ -30,7 +30,10 @@ export async function createScenario(data: typeof scenarios.$inferInsert) {
     return null
   }
 
-  const phrases = await generateScenarioPhrases(createdScenario?.[0]?.id ?? '')
+  const phrases = await generateScenarioPhrases(
+    createdScenario?.[0]?.id ?? '',
+    data.userId ?? '',
+  )
   if (isEmpty(phrases)) {
     return null
   }

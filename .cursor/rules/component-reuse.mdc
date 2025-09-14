@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+description: Component reuse and library guidelines
+---
+
+# Component Reuse Guidelines
+
+## Always Check Existing Components First
+
+Before creating any new UI component or form element, **ALWAYS** check the existing component library in [src/components/](mdc:src/components/) for reusable components.
+
+### Available Component Library
+
+- **Button**: [src/components/Button/index.tsx](mdc:src/components/Button/index.tsx) - Styled buttons with variants
+- **TextInput**: [src/components/TextInput/index.tsx](mdc:src/components/TextInput/index.tsx) - Form text inputs with labels and validation
+- **Textarea**: [src/components/Textarea/index.tsx](mdc:src/components/Textarea/index.tsx) - Multi-line text inputs
+- **SelectInput**: [src/components/SelectInput/index.tsx](mdc:src/components/SelectInput/index.tsx) - Dropdown selects with Radix UI
+- **MultipleSelectChips**: [src/components/MultipleSelectChips/index.tsx](mdc:src/components/MultipleSelectChips/index.tsx) - Multi-select with chip display
+- **GoogleSignIn**: [src/components/GoogleSignIn/index.tsx](mdc:src/components/GoogleSignIn/index.tsx) - Google authentication button
+
+### Component Reuse Rules
+
+1. **Never write raw HTML form elements** when a component exists
+2. **Always import and use existing components** instead of duplicating styles
+3. **Check component props and interfaces** to ensure proper usage
+4. **Extend existing components** rather than creating new ones for similar functionality
+5. **Follow the established patterns** in the component library
+
+### Common Patterns
+
+- Use `TextInput` for single-line text inputs
+- Use `Textarea` for multi-line text areas
+- Use `SelectInput` for dropdown selections
+- Use `Button` for all interactive buttons
+- Use `MultipleSelectChips` for multi-select scenarios
+
+### When to Create New Components
+
+Only create new components when:
+
+- No existing component meets the specific requirements
+- The functionality is fundamentally different from existing components
+- The component will be reused across multiple pages/features
+
+### Import Pattern
+
+```tsx
+import ComponentName from '@/components/ComponentName'
+```
+
+This rule ensures consistent UI/UX and reduces code duplication across the application.

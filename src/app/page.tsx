@@ -32,7 +32,7 @@ export default async function Home() {
           </p>
           <div className="mt-6 w-full space-y-4">
             <FeatureCard
-              title="Quick Soundpads"
+              title="Quick Scenarios"
               subtitle="Pre-made phrase collections for any situations"
               icon={<CloudLightning />}
             />
