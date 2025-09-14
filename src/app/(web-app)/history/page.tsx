@@ -8,7 +8,7 @@ export default function HistoryPage() {
         title="Conversation history"
         backButton={false}
       />
-      <div className="mx-auto max-w-3xl px-4 py-6 pb-20 pt-20">
+      <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
         <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
           <Clock className="mb-6 h-16 w-16 text-gray-400" />
           <h2 className="mb-3 text-xl font-semibold text-gray-900">

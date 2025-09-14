@@ -49,7 +49,7 @@ export default function ScenarioPage() {
     return (
       <>
         <TopBar title="Scenarios" backButton={false} />
-        <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
+        <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
           <div className="flex items-center justify-center py-12">
             <div className="text-gray-500">Loading scenarios...</div>
           </div>
@@ -62,7 +62,7 @@ export default function ScenarioPage() {
     return (
       <>
         <TopBar title="Scenarios" backButton={false} />
-        <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
+        <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
           <div className="flex items-center justify-center py-12">
             <div className="text-red-500">Error loading scenarios</div>
           </div>
@@ -74,7 +74,7 @@ export default function ScenarioPage() {
   return (
     <>
       <TopBar title="Scenarios" backButton={false} />
-      <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
+      <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
         <div className="mb-6 flex gap-3">
           <div className="flex-1">
             <div className="relative">

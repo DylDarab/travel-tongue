@@ -46,11 +46,8 @@ export default async function SettingPage() {
 
   return (
     <>
-      <TopBar
-        title="Settings"
-        backButton={false}
-      />
-      <div className="mx-auto max-w-3xl px-4 py-6 pb-20 pt-20">
+      <TopBar title="Settings" backButton={false} />
+      <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
         <div className="space-y-6">
           <UserInfoCard
             icon={User}

@@ -70,7 +70,7 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
         description={scenario.context ?? ''}
         backButton={true}
       />
-      <div className="p-4 pt-20">
+      <div className="p-4 pt-20 pb-24">
         <div className="space-y-6">
           {phraseGroups.map((section) => (
             <div key={section.id} className="mb-6">

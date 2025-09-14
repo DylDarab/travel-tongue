@@ -79,4 +79,32 @@ export const scenariosRouter = createTRPCRouter({
     .query(async ({ input }) => {
       return await getScenarioPhrases(input.scenarioId)
     }),
+
+  getLatestScenarios: protectedProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(10).optional().default(3),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          items: [],
+        }
+      }
+
+      const scenarios = await getScenariosList(
+        ctx.session.user.id,
+        undefined,
+        input.limit,
+      )
+
+      if (scenarios.length > input.limit) {
+        scenarios.pop()
+      }
+
+      return {
+        items: scenarios,
+      }
+    }),
 })
