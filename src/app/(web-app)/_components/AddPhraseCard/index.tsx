@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { Plus } from 'lucide-react'
 
 const AddPhraseCard = () => {
   return (
@@ -8,7 +8,7 @@ const AddPhraseCard = () => {
         <span className="text-sm font-medium">Add phrase</span>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AddPhraseCard;
+export default AddPhraseCard

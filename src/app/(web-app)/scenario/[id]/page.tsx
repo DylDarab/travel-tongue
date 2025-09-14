@@ -18,6 +18,10 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
   const { id } = use(params)
   const [phraseGroups, setPhraseGroups] = useState<PhraseGroup[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const { data: scenario, isLoading: isLoadingScenario } =
     api.scenarios.getScenario.useQuery(
@@ -97,7 +101,12 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
                     />
                   )
                 })}
-                <div onClick={() => setIsModalOpen(true)}>
+                <div
+                  onClick={() => {
+                    setSelectedGroup({ id: section.id, name: section.title })
+                    setIsModalOpen(true)
+                  }}
+                >
                   <AddPhraseCard />
                 </div>
               </div>
@@ -105,7 +114,13 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
           ))}
         </div>
       </div>
-      <AddPhraseModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      <AddPhraseModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        scenarioId={id}
+        targetLang={scenario?.targetLang}
+        groupName={selectedGroup?.name ?? 'General'}
+      />
     </div>
   )
 }

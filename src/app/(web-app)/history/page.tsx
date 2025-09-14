@@ -4,10 +4,7 @@ import { TopBar } from '@/app/_components/TopBar'
 export default function HistoryPage() {
   return (
     <>
-      <TopBar
-        title="Conversation history"
-        backButton={false}
-      />
+      <TopBar title="Conversation history" backButton={false} />
       <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
         <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
           <Clock className="mb-6 h-16 w-16 text-gray-400" />

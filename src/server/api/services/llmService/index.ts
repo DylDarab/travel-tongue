@@ -1,6 +1,8 @@
 import { env } from '@/env'
 import OpenAI from 'openai'
 import type { z } from 'zod'
+import { replaceVariableInPrompt } from '@/utils/promptsUtils'
+import { TRANSLATE_PHRASE_PROMPT } from './prompts'
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -65,4 +67,59 @@ export async function generateContent<T>(
   }
 
   return null
+}
+
+export async function generateTextContent(
+  prompt: string,
+  maxRetries = 3,
+): Promise<string | null> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4.1-mini',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+      })
+
+      const content = response.choices[0]?.message?.content
+      console.log('🚀 ~ generateTextContent ~ content:', content)
+      if (!content) {
+        throw new Error('No content in response')
+      }
+
+      return content
+    } catch (error) {
+      console.log(
+        `❌ API call failed on attempt ${attempt}/${maxRetries}:`,
+        error,
+      )
+    }
+
+    if (attempt < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
+    }
+  }
+
+  return null
+}
+
+export async function translateText(
+  englishPhrase: string,
+  targetLang: string,
+  context?: string,
+): Promise<string | null> {
+  const prompt = replaceVariableInPrompt(TRANSLATE_PHRASE_PROMPT, {
+    englishPhrase,
+    targetLang,
+    ...(context && { context }),
+  })
+
+  const result = await generateTextContent(prompt, 3)
+  return result
 }
