@@ -1,5 +1,11 @@
 import { relations, sql } from 'drizzle-orm'
-import { index, jsonb, pgTableCreator, timestamp } from 'drizzle-orm/pg-core'
+import {
+  index,
+  jsonb,
+  pgTableCreator,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 import { accounts, users } from './auth'
 
 export type MessageRole = 'user' | 'local' | 'system'
@@ -68,7 +74,10 @@ export const phrases = createTable(
     localDialogue: d.text('local_dialogue').notNull(),
     targetDialogue: d.text('target_dialogue').notNull(),
   }),
-  (t) => [index('phrases_scenario_order_idx').on(t.scenarioId, t.order)],
+  (t) => [
+    index('phrases_scenario_order_idx').on(t.scenarioId, t.order),
+    uniqueIndex('phrases_scenario_order_unique_idx').on(t.scenarioId, t.order),
+  ],
 )
 
 export const conversations = createTable(

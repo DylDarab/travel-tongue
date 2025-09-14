@@ -6,6 +6,7 @@ import { getUserById } from '../userService'
 import { phrasesArraySchema, type PhrasesArray } from './types'
 import { db } from '@/server/db'
 import { phrases } from '@/server/db/schema/app'
+import { eq } from 'drizzle-orm'
 
 export async function generateScenarioPhrases(
   scenarioId: string,
@@ -44,6 +45,8 @@ export async function generateScenarioPhrases(
   if (!generatedPhrases) {
     return null
   }
+
+  await db.delete(phrases).where(eq(phrases.scenarioId, scenarioId))
 
   await db.insert(phrases).values(
     generatedPhrases.map((phrase) => ({

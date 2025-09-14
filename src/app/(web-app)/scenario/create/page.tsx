@@ -19,7 +19,6 @@ export default function CreateScenarioPage() {
   const router = useRouter()
 
   const createScenarioMutation = api.scenarios.createScenario.useMutation()
-  const generatePhrasesMutation = api.phrases.generatePhrases.useMutation()
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -35,11 +34,7 @@ export default function CreateScenarioPage() {
       })
 
       if (scenario) {
-        await generatePhrasesMutation.mutateAsync({
-          scenarioId: scenario.id,
-        })
-
-        router.push('/scenario')
+        router.push(`/scenario/${scenario.id}`)
       }
     } catch (error) {
       console.error('Error creating scenario:', error)

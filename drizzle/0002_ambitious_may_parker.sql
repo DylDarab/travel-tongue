@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "phrases_scenario_order_unique_idx" ON "tt_phrases" USING btree ("scenario_id","order");

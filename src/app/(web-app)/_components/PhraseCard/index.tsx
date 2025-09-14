@@ -4,14 +4,16 @@ import { Volume2 } from 'lucide-react'
 import { useState } from 'react'
 
 interface PhraseCardProps {
-  english: string
-  translation: string
+  label: string
+  displayText: string
+  speakText: string
   speakLang: string
 }
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
-  english,
-  translation,
+  label,
+  displayText,
+  speakText,
   speakLang,
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -20,7 +22,7 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
     if ('speechSynthesis' in window) {
       setIsSpeaking(true)
 
-      const utterance = new SpeechSynthesisUtterance(translation)
+      const utterance = new SpeechSynthesisUtterance(speakText)
       utterance.rate = 0.7
       utterance.pitch = 1
       utterance.lang = speakLang
@@ -39,9 +41,9 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm">
-      <div>
-        <p className="mb-1 font-medium text-gray-900">{english}</p>
-        <p className="text-sm text-gray-600">{translation}</p>
+      <div className="flex-1">
+        <p className="text-lg font-medium text-gray-900">{label}</p>
+        <p className="text-sm text-gray-600">{displayText}</p>
       </div>
       <button
         onClick={handleSpeak}

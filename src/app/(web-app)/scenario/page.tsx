@@ -1,63 +1,80 @@
-import { ArrowLeft, Search, Plus } from 'lucide-react'
-import Link from 'next/link'
-import { TopBar } from '@/app/_components/TopBar'
-import { auth } from '@/server/auth'
-import { redirect } from 'next/navigation'
+'use client'
+
 import ScenarioCard from '@/app/(web-app)/_components/ScenarioCard'
+import { TopBar } from '@/app/_components/TopBar'
+import { api } from '@/trpc/react'
+import { Plus, Search } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
 
-interface ScenarioItem {
-  id: string
-  name: string
-  language: string
-  phrasesCount: number
-  description: string
-}
+export default function ScenarioPage() {
+  const [searchTerm, setSearchTerm] = useState('')
 
-const mockScenarioItems: ScenarioItem[] = [
-  {
-    id: '1',
-    name: 'Sushi restaurant',
-    language: 'ja-JP',
-    phrasesCount: 14,
-    description: '3 friends, ¥5000 budget each',
-  },
-  {
-    id: '2',
-    name: 'Hotel check-in',
-    language: 'en-US',
-    phrasesCount: 8,
-    description: 'Business trip, need early check-in',
-  },
-  {
-    id: '3',
-    name: 'Train station',
-    language: 'ja-JP',
-    phrasesCount: 12,
-    description: 'First time using JR Pass',
-  },
-  {
-    id: '4',
-    name: 'Coffee shop',
-    language: 'fr-FR',
-    phrasesCount: 6,
-    description: 'Morning coffee, lactose intolerant',
-  },
-]
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = api.scenarios.getScenarios.useInfiniteQuery(
+    {},
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  )
 
-export default async function ScenarioPage() {
-  const session = await auth()
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    triggerOnce: false,
+  })
 
-  if (!session?.user?.id) {
-    redirect('/')
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage()
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  const allScenarios = data?.pages.flatMap((page) => page.items) ?? []
+
+  const filteredScenarios = allScenarios.filter(
+    (scenario) =>
+      scenario.title.toLowerCase().includes(searchTerm.toLowerCase()) ??
+      scenario.context?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+      false,
+  )
+
+  if (isLoading) {
+    return (
+      <>
+        <TopBar title="Scenarios" backButton={false} />
+        <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">Loading scenarios...</div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  if (isError) {
+    return (
+      <>
+        <TopBar title="Scenarios" backButton={false} />
+        <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-red-500">Error loading scenarios</div>
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
     <>
-      <TopBar
-        title="Scenarios"
-        backButton={false}
-      />
-      <div className="mx-auto max-w-3xl px-4 py-6 pb-20 pt-20">
+      <TopBar title="Scenarios" backButton={false} />
+      <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
         <div className="mb-6 flex gap-3">
           <div className="flex-1">
             <div className="relative">
@@ -65,6 +82,8 @@ export default async function ScenarioPage() {
               <input
                 type="text"
                 placeholder="Search scenarios..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 py-3 pr-4 pl-10 text-gray-900 placeholder-gray-500 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20 focus:outline-none"
               />
             </div>
@@ -78,27 +97,42 @@ export default async function ScenarioPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {mockScenarioItems.map((item) => (
-            <ScenarioCard
-              key={item.id}
-              title={item.name}
-              description={item.description}
-              language={item.language}
-              phrasesAmount={item.phrasesCount}
-            />
+          {filteredScenarios.map((scenario) => (
+            <Link
+              key={scenario.id}
+              href={`/scenario/${scenario.id}`}
+              className="block"
+            >
+              <ScenarioCard
+                title={scenario.title}
+                description={scenario.context ?? ''}
+                language={scenario.targetLang}
+                phrasesAmount={scenario.phraseCount}
+              />
+            </Link>
           ))}
         </div>
 
-        {mockScenarioItems.length === 0 && (
+        {isFetchingNextPage && (
+          <div className="mt-8 flex items-center justify-center">
+            <div className="text-gray-500">Loading more scenarios...</div>
+          </div>
+        )}
+
+        {hasNextPage && <div ref={ref} className="mt-8 h-10" />}
+
+        {filteredScenarios.length === 0 && !isLoading && (
           <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
               <Plus className="h-8 w-8 text-gray-400" />
             </div>
             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-              No scenarios yet
+              No scenarios found
             </h3>
             <p className="mb-6 text-gray-600">
-              Create your first scenario to get started
+              {searchTerm
+                ? 'Try adjusting your search terms'
+                : 'Create your first scenario to get started'}
             </p>
             <Link
               href="/scenario/create"

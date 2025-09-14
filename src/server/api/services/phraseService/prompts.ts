@@ -25,7 +25,7 @@ group (string): one of "Greetings" | "Requests" | "Directions" | "Etiquette" | "
 
 label (string, English, 2–4 words): short button title.
 
-localDialogue (string, English): natural, polite sentence the user intends to say.
+localDialogue (string, in user preferred language): natural, polite sentence the user intends to say, make user understand the dialogue in user language.
 
 targetDialogue (string, in targetLang script only): exact TTS line to speak. No romaji, no mixed English.
 

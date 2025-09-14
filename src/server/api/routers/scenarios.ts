@@ -17,12 +17,38 @@ const createScenarioSchema = z.object({
 })
 
 export const scenariosRouter = createTRPCRouter({
-  getScenarios: protectedProcedure.query(async ({ ctx }) => {
-    if (!ctx.session.user) {
-      return []
-    }
-    return await getScenariosList(ctx.session.user.id)
-  }),
+  getScenarios: protectedProcedure
+    .input(
+      z.object({
+        cursor: z.string().optional(),
+        limit: z.number().min(1).max(50).optional().default(10),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session.user) {
+        return {
+          items: [],
+          nextCursor: null,
+        }
+      }
+
+      const scenarios = await getScenariosList(
+        ctx.session.user.id,
+        input.cursor,
+        input.limit,
+      )
+
+      let nextCursor: string | null = null
+      if (scenarios.length > input.limit) {
+        const nextItem = scenarios.pop()
+        nextCursor = nextItem?.updatedAt?.toISOString() ?? null
+      }
+
+      return {
+        items: scenarios,
+        nextCursor,
+      }
+    }),
 
   getScenario: protectedProcedure
     .input(z.object({ id: z.string().uuid() }))
