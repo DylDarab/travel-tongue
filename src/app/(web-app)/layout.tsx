@@ -14,7 +14,7 @@ export default async function WebAppLayout({
   }
 
   return (
-    <div className="pb-16">
+    <div className="bg-white pb-16">
       {children}
       <Navbar />
     </div>
