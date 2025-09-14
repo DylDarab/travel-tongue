@@ -22,7 +22,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable}`}>
-      <body className="bg-teal-50">
+      <body>
         <div className="mx-auto max-w-3xl">
           {/* @ts-expect-error - SessionProvider is not a valid JSX element */}
           <SessionProvider>

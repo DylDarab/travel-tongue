@@ -3,6 +3,8 @@
 import { use } from 'react'
 import { useState, useEffect } from 'react'
 import PhraseCard from '@/app/(web-app)/_components/PhraseCard'
+import AddPhraseCard from '@/app/(web-app)/_components/AddPhraseCard'
+import AddPhraseModal from '@/app/(web-app)/_components/AddPhraseModal'
 import { TopBar } from '@/app/_components/TopBar'
 import { api } from '@/trpc/react'
 import { groupPhrasesByGroup } from './_utils/phraseUtils'
@@ -15,6 +17,7 @@ interface PageProps {
 const ScenarioDetailPage = ({ params }: PageProps) => {
   const { id } = use(params)
   const [phraseGroups, setPhraseGroups] = useState<PhraseGroup[]>([])
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const { data: scenario, isLoading: isLoadingScenario } =
     api.scenarios.getScenario.useQuery(
@@ -94,11 +97,15 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
                     />
                   )
                 })}
+                <div onClick={() => setIsModalOpen(true)}>
+                  <AddPhraseCard />
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+      <AddPhraseModal open={isModalOpen} onOpenChange={setIsModalOpen} />
     </div>
   )
 }
