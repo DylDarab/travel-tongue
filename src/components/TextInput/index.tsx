@@ -10,6 +10,9 @@ const textInputVariants = cva(
       isError: {
         true: 'border-red-500',
       },
+      readOnly: {
+        true: 'cursor-not-allowed bg-gray-100 text-gray-500',
+      },
     },
   },
 )
@@ -21,6 +24,7 @@ export interface TextInputProps
   isError?: boolean
   isRequired?: boolean
   errorMessage?: string
+  readOnly?: boolean
 }
 
 const TextInput: React.FC<TextInputProps> = ({
@@ -28,6 +32,7 @@ const TextInput: React.FC<TextInputProps> = ({
   isError,
   isRequired,
   errorMessage,
+  readOnly,
   ...inputProps
 }) => {
   return (
@@ -38,7 +43,8 @@ const TextInput: React.FC<TextInputProps> = ({
       </label>
       <input
         type="text"
-        className={textInputVariants({ isError })}
+        className={textInputVariants({ isError, readOnly })}
+        readOnly={readOnly}
         {...inputProps}
       />
       {errorMessage && (

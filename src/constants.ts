@@ -42,3 +42,5 @@ export const GENDER = [
   { value: 'nonbinary', label: 'Non-binary' },
   { value: 'prefer_not_to_say', label: 'Prefer not to say' },
 ]
+
+export const USER_CUSTOM_GROUP = 'Custom'

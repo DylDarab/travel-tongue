@@ -9,6 +9,7 @@ import { TopBar } from '@/app/_components/TopBar'
 import { api } from '@/trpc/react'
 import { groupPhrasesByGroup } from './_utils/phraseUtils'
 import type { PhraseGroup } from './_utils/types'
+import { USER_CUSTOM_GROUP } from '@/constants'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -18,10 +19,6 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
   const { id } = use(params)
   const [phraseGroups, setPhraseGroups] = useState<PhraseGroup[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedGroup, setSelectedGroup] = useState<{
-    id: string
-    name: string
-  } | null>(null)
 
   const { data: scenario, isLoading: isLoadingScenario } =
     api.scenarios.getScenario.useQuery(
@@ -47,6 +44,17 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
       setPhraseGroups(phraseGroupsArray)
     }
   }, [phrases, scenario])
+
+  useEffect(() => {
+    console.log('Scenario data loaded:', scenario)
+    if (scenario?.targetLang) {
+      console.log('Scenario targetLang:', scenario.targetLang)
+    } else if (scenario) {
+      console.log('Scenario loaded but targetLang is undefined')
+    } else {
+      console.log('No scenario data available')
+    }
+  }, [scenario])
 
   if (isLoading) {
     return (
@@ -79,39 +87,50 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
       />
       <div className="p-4 pt-20 pb-24">
         <div className="space-y-6">
-          {phraseGroups.map((section) => (
-            <div key={section.id} className="mb-6">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-medium text-gray-900">
-                  {section.title} ({section.phrases.length})
-                </h2>
-                <button className="flex items-center gap-1 text-gray-500 hover:text-gray-700">
-                  <span>↑</span>
-                </button>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {section.phrases.map((phrase) => {
-                  return (
-                    <PhraseCard
-                      key={phrase.id}
-                      label={phrase.label}
-                      displayText={phrase.localDialogue}
-                      speakText={phrase.targetDialogue}
-                      speakLang={phrase.speakLang}
-                    />
-                  )
-                })}
-                <div
-                  onClick={() => {
-                    setSelectedGroup({ id: section.id, name: section.title })
-                    setIsModalOpen(true)
-                  }}
-                >
-                  <AddPhraseCard />
-                </div>
+          <div className="mb-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">
+                {USER_CUSTOM_GROUP}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div onClick={() => setIsModalOpen(true)}>
+                <AddPhraseCard />
               </div>
             </div>
-          ))}
+          </div>
+
+          {phraseGroups.map((section) => {
+            if (section.title === USER_CUSTOM_GROUP) {
+              return null
+            }
+
+            return (
+              <div key={section.id} className="mb-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-lg font-medium text-gray-900">
+                    {section.title} ({section.phrases.length})
+                  </h2>
+                  <button className="flex items-center gap-1 text-gray-500 hover:text-gray-700">
+                    <span>↑</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {section.phrases.map((phrase) => {
+                    return (
+                      <PhraseCard
+                        key={phrase.id}
+                        label={phrase.label}
+                        displayText={phrase.localDialogue}
+                        speakText={phrase.targetDialogue}
+                        speakLang={phrase.speakLang}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
       <AddPhraseModal
@@ -119,7 +138,6 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
         onOpenChange={setIsModalOpen}
         scenarioId={id}
         targetLang={scenario?.targetLang}
-        groupName={selectedGroup?.name ?? 'General'}
       />
     </div>
   )
