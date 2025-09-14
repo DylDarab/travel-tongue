@@ -3,7 +3,7 @@ import { twMerge } from 'tailwind-merge'
 
 const chipVariants = cva(
   [
-    'inline-flex cursor-pointer items-center rounded-full border px-3 py-1 text-sm font-medium transition-all duration-200',
+    'inline-flex cursor-pointer items-center rounded-full border px-3 py-1 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:outline-none',
   ],
   {
     variants: {
@@ -27,6 +27,7 @@ export interface MultipleSelectChipsProps
   selectedValues: string[]
   onChange: (selectedValues: string[]) => void
   className?: string
+  'aria-describedby'?: string
 }
 
 const MultipleSelectChips: React.FC<MultipleSelectChipsProps> = ({
@@ -35,6 +36,7 @@ const MultipleSelectChips: React.FC<MultipleSelectChipsProps> = ({
   selectedValues,
   onChange,
   className,
+  'aria-describedby': ariaDescribedby,
 }) => {
   const handleToggle = (value: string) => {
     if (selectedValues.includes(value)) {
@@ -52,10 +54,14 @@ const MultipleSelectChips: React.FC<MultipleSelectChipsProps> = ({
           <button
             key={option.value}
             type="button"
-            className={chipVariants({
-              isSelected: selectedValues.includes(option.value),
-            })}
+            className={twMerge(
+              chipVariants({
+                isSelected: selectedValues.includes(option.value),
+              }),
+              'min-h-[2rem] min-w-[3rem] touch-manipulation',
+            )}
             onClick={() => handleToggle(option.value)}
+            aria-describedby={ariaDescribedby}
           >
             {option.label}
           </button>

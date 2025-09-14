@@ -4,14 +4,17 @@ import { twMerge } from 'tailwind-merge'
 
 const buttonVariants = cva(
   [
-    'flex cursor-pointer items-center justify-center gap-3 rounded-md px-4 py-2 transition-all duration-200',
+    'flex cursor-pointer items-center justify-center gap-3 rounded-md px-4 py-2 transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
   ],
   {
     variants: {
       variant: {
-        primary: 'flex bg-teal-600 text-white hover:bg-teal-700',
-        outline: 'border border-gray-300 bg-white text-black hover:bg-gray-100',
-        destructive: 'bg-red-500 text-white hover:bg-red-600',
+        primary:
+          'flex bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500 focus:ring-offset-white',
+        outline:
+          'border border-gray-300 bg-white text-black hover:bg-gray-100 focus:ring-teal-500 focus:ring-offset-white',
+        destructive:
+          'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500 focus:ring-offset-white',
       },
       size: {
         sm: 'text-sm',
