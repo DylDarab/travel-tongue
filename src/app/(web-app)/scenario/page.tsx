@@ -7,6 +7,8 @@ import { Plus, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { ListSkeleton } from '@/components/LoadingSkeleton'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 export default function ScenarioPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -50,9 +52,16 @@ export default function ScenarioPage() {
       <>
         <TopBar title="Scenarios" backButton={false} />
         <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-gray-500">Loading scenarios...</div>
+          <div className="mb-6 flex gap-3">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <div className="h-12 w-full rounded-lg border border-gray-200 bg-gray-50" />
+              </div>
+            </div>
+            <div className="h-14 w-14 rounded-lg bg-gray-200" />
           </div>
+          <ListSkeleton count={6} />
         </div>
       </>
     )
@@ -90,9 +99,9 @@ export default function ScenarioPage() {
           </div>
           <Link
             href="/scenario/create"
-            className="flex h-12 w-12 items-center justify-center rounded-lg bg-teal-600 text-white transition-colors hover:bg-teal-700"
+            className="flex h-14 w-14 touch-manipulation items-center justify-center rounded-lg bg-teal-500 text-white transition-colors hover:bg-teal-600"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-6 w-6" />
           </Link>
         </div>
 
@@ -115,7 +124,10 @@ export default function ScenarioPage() {
 
         {isFetchingNextPage && (
           <div className="mt-8 flex items-center justify-center">
-            <div className="text-gray-500">Loading more scenarios...</div>
+            <LoadingSpinner className="text-teal-500" />
+            <span className="ml-2 text-gray-500">
+              Loading more scenarios...
+            </span>
           </div>
         )}
 
@@ -136,9 +148,9 @@ export default function ScenarioPage() {
             </p>
             <Link
               href="/scenario/create"
-              className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-white transition-colors hover:bg-teal-700"
+              className="inline-flex touch-manipulation items-center gap-2 rounded-lg bg-teal-500 px-4 py-2 text-white transition-colors hover:bg-teal-600"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
               Create scenario
             </Link>
           </div>

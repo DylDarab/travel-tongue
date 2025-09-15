@@ -111,8 +111,8 @@ const AddPhraseModal = ({
             <Dialog.Title className="text-lg font-medium">
               Add custom phrase
             </Dialog.Title>
-            <Dialog.Close className="rounded-full p-1 hover:bg-gray-100">
-              <X className="h-5 w-5" />
+            <Dialog.Close className="min-h-[48px] min-w-[48px] touch-manipulation rounded-full p-2 hover:bg-gray-100">
+              <X className="h-6 w-6" />
             </Dialog.Close>
           </div>
 

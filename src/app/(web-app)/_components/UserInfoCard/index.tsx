@@ -23,15 +23,15 @@ const UserInfoCard = ({
     <div className="rounded-2xl border border-gray-200 bg-white p-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <Icon className="h-5 w-5 text-teal-600" />
+          <Icon className="h-5 w-5 text-teal-500" />
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         </div>
         {displayEditButton && editHref && (
           <Link
             href={editHref}
-            className="flex items-center space-x-1 font-medium text-teal-600 hover:text-teal-700"
+            className="flex min-h-[44px] touch-manipulation items-center space-x-2 rounded-md px-2 py-2 font-medium text-teal-500 hover:bg-teal-50 hover:text-teal-600"
           >
-            <Edit className="h-4 w-4" />
+            <Edit className="h-5 w-5" />
             <span>Edit</span>
           </Link>
         )}

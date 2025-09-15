@@ -20,8 +20,8 @@ const ScenarioCard = ({
           <h3 className="mb-1 font-semibold text-gray-900">{title}</h3>
           <p className="text-sm text-gray-600">{description}</p>
         </div>
-        <button className="text-gray-400 transition-colors hover:text-yellow-500">
-          <Star className="h-5 w-5" />
+        <button className="min-h-[48px] min-w-[48px] touch-manipulation rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-yellow-500">
+          <Star className="h-6 w-6" />
         </button>
       </div>
 

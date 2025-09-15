@@ -30,7 +30,7 @@ export default async function HomePage() {
             <h2 className="text-lg font-semibold text-gray-900">
               Recent conversations
             </h2>
-            <button className="font-medium text-teal-600 hover:text-teal-700">
+            <button className="font-medium text-teal-500 hover:text-teal-600">
               View all
             </button>
           </div>
@@ -48,7 +48,7 @@ export default async function HomePage() {
             </h2>
             <Link
               href="/scenario"
-              className="font-medium text-teal-600 hover:text-teal-700"
+              className="font-medium text-teal-500 hover:text-teal-600"
             >
               View all
             </Link>

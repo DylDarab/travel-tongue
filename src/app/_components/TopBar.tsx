@@ -43,10 +43,10 @@ export function TopBar({
         {backButton && (
           <button
             onClick={handleBack}
-            className="rounded-full p-2 transition-colors hover:bg-gray-100"
+            className="min-h-[48px] min-w-[48px] touch-manipulation rounded-full p-3 transition-colors hover:bg-gray-100"
             aria-label="Go back"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-6 w-6 text-gray-600" />
           </button>
         )}
         <div className="min-w-0 flex-1">

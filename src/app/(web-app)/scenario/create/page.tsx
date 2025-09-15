@@ -49,7 +49,7 @@ export default function CreateScenarioPage() {
       <div className="mx-auto max-w-3xl px-4 py-6 pt-20 pb-20">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100">
-            <Sparkles className="h-8 w-8 text-teal-600" />
+            <Sparkles className="h-8 w-8 text-teal-500" />
           </div>
           <h2 className="mb-2 text-2xl font-bold text-gray-900">
             AI-powered scenario

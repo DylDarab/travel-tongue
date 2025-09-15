@@ -36,7 +36,7 @@ const AdditionalContextSection = ({ form }: AdditionalContextSectionProps) => {
       <div className="mb-6">
         <div className="flex items-center space-x-3">
           <svg
-            className="h-5 w-5 text-teal-600"
+            className="h-5 w-5 text-teal-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

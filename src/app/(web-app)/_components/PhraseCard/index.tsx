@@ -47,9 +47,9 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
       </div>
       <button
         onClick={handleSpeak}
-        className={`rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 ${isSpeaking ? 'animate-pulse' : ''}`}
+        className={`min-h-[48px] min-w-[48px] touch-manipulation rounded-full p-3 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 ${isSpeaking ? 'animate-pulse' : ''}`}
       >
-        <Volume2 />
+        <Volume2 className="h-6 w-6" />
       </button>
     </div>
   )

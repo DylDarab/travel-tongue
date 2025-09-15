@@ -3,7 +3,7 @@ import { auth } from '@/server/auth'
 import { redirect } from 'next/navigation'
 import { CloudLightning, MessageCircle, Mic, Shield } from 'lucide-react'
 import FeatureCard from './_components/FeatureCard'
-import GoogleLogin from './_components/GoogleLogin'
+import GoogleSignIn from '@/components/GoogleSignIn'
 import { isUserProfileComplete } from '@/server/api/services/userService'
 
 export default async function Home() {
@@ -23,7 +23,7 @@ export default async function Home() {
     <HydrateClient>
       <main className="mx-auto max-w-2xl bg-teal-50">
         <div className="flex w-full flex-col items-center justify-center px-4 py-12">
-          <div className="rounded-full bg-teal-600 p-6">
+          <div className="rounded-full bg-teal-500 p-6">
             <MessageCircle className="h-12 w-12 text-white" />
           </div>
           <h1 className="mt-6 text-3xl font-bold">TravelTongue</h1>
@@ -47,7 +47,7 @@ export default async function Home() {
               icon={<Shield />}
             />
           </div>
-          <GoogleLogin />
+          <GoogleSignIn />
           <span className="mt-3 text-sm text-gray-500">
             Free to use • Privacy-focused • No PII collection
           </span>
@@ -56,3 +56,4 @@ export default async function Home() {
     </HydrateClient>
   )
 }
+  

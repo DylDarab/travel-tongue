@@ -2,7 +2,8 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, FormProvider } from 'react-hook-form'
+import { useEffect } from 'react'
 
 import { TopBar } from '@/app/_components/TopBar'
 import Button from '@/components/Button'
@@ -42,6 +43,21 @@ export default function EditProfilePage() {
     },
   })
 
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        displayName: user.displayName ?? undefined,
+        realName: user.realName ?? undefined,
+        gender: user.gender ?? undefined,
+        preferredLanguage: user.preferredLanguage ?? undefined,
+        travelPreferences: user.travelPreferences ?? [],
+        foodAllergies: user.foodAllergies ?? undefined,
+        religion: user.religion ?? undefined,
+        personalNotes: user.personalNotes ?? undefined,
+      })
+    }
+  }, [user, form])
+
   const onSubmit = (data: ProfileUpdateFormData) => {
     if (!user?.id) return
 
@@ -77,34 +93,36 @@ export default function EditProfilePage() {
     <>
       <TopBar title="Edit Profile" backButton={true} />
       <div className="mx-auto max-w-3xl px-4 py-6 pt-20">
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
-          <ProfileProgress className="mb-6" />
-          <PersonalInfoSection form={form} />
-          <TravelPreferencesSection form={form} />
-          <AdditionalContextSection form={form} />
+        <FormProvider {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+            <ProfileProgress className="mb-6" />
+            <PersonalInfoSection form={form} />
+            <TravelPreferencesSection form={form} />
+            <AdditionalContextSection form={form} />
 
-          <div className="mt-8 flex flex-col-reverse items-center justify-between gap-4 border-t border-gray-200 pt-8 sm:flex-row">
-            <div className="text-sm text-gray-500">
-              {Object.keys(form.formState.dirtyFields ?? {}).length} field(s)
-              modified
+            <div className="mt-8 flex flex-col-reverse items-center justify-between gap-4 border-t border-gray-200 pt-8 sm:flex-row">
+              <div className="text-sm text-gray-500">
+                {Object.keys(form.formState.dirtyFields ?? {}).length} field(s)
+                modified
+              </div>
+              <div className="flex w-full space-x-4 sm:w-auto">
+                <Button
+                  label="Cancel"
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/setting')}
+                  disabled={isUpdating}
+                />
+                <Button
+                  label="Save Changes"
+                  type="submit"
+                  loading={isUpdating}
+                  disabled={isUpdating || !form.formState.isDirty}
+                />
+              </div>
             </div>
-            <div className="flex w-full space-x-4 sm:w-auto">
-              <Button
-                label="Cancel"
-                type="button"
-                variant="outline"
-                onClick={() => router.push('/setting')}
-                disabled={isUpdating}
-              />
-              <Button
-                label="Save Changes"
-                type="submit"
-                loading={isUpdating}
-                disabled={isUpdating || !form.formState.isDirty}
-              />
-            </div>
-          </div>
-        </form>
+          </form>
+        </FormProvider>
       </div>
     </>
   )

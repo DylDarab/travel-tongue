@@ -9,7 +9,7 @@ interface Props {
 const FeatureCard: React.FC<Props> = ({ title, subtitle, icon }) => {
   return (
     <div className="flex w-full items-center gap-3 rounded-3xl border border-gray-200 bg-white p-4">
-      <div className="rounded-full border border-gray-100 bg-teal-50 p-4 text-teal-600">
+      <div className="rounded-full border border-gray-100 bg-teal-50 p-4 text-teal-500">
         {icon}
       </div>
       <div>

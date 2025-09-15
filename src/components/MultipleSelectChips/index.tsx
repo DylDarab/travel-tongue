@@ -8,7 +8,7 @@ const chipVariants = cva(
   {
     variants: {
       isSelected: {
-        true: 'border-teal-500 bg-teal-50 text-teal-700',
+        true: 'border-teal-500 bg-teal-50 text-teal-600',
         false: 'border-gray-300 bg-white text-gray-700 hover:border-gray-400',
       },
     },

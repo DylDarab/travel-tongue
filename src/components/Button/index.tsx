@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          'flex bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500 focus:ring-offset-white',
+          'flex bg-teal-500 text-white hover:bg-teal-600 focus:ring-teal-500 focus:ring-offset-white',
         outline:
           'border border-gray-300 bg-white text-black hover:bg-gray-100 focus:ring-teal-500 focus:ring-offset-white',
         destructive:
