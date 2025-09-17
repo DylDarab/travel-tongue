@@ -1,17 +1,17 @@
-# Travel Tongue Chat API Specification
+# Travel Tongue Chat API Specification (Simplified)
 
 ## 1. Overview
 
-This document defines the API specifications required to implement the live conversation features for Travel Tongue's chat functionality. The architecture follows our existing patterns for tRPC, Drizzle ORM, and NextAuth integration.
+This document defines the **minimal viable API** for TravelTongue's live conversation features. The architecture follows our existing patterns for tRPC, Drizzle ORM, and NextAuth, but has been simplified to match TravelTongue's actual needs as a real-time conversation tool for immediate in-person use.
 
 ```mermaid
 graph TD
     A[Chat UI] -->|tRPC requests| B[Conversation Router]
     B --> C[Conversation Service]
     C --> D[LLM Service]
-    C --> F[Conversation Repository]
+    C --> F[Conversation Storage]
     F --> G[(Database)]
-    D --> H[(OpenAI API)]
+    D --> H[(Gemini API)]
     A -->|Web Speech API| J[Browser STT]
     A -->|Web Speech Synthesis| K[Browser TTS]
 ```
@@ -21,24 +21,16 @@ The system implements a layered architecture with clear separation between:
 - UI Layer (React components)
 - API Layer (tRPC routers)
 - Service Layer (business logic)
-- Repository Layer (data access)
-- External Services (LLM, Speech processing)
+- Data Layer (storage)
+- External Services (LLM)
 
 ## 2. tRPC Router Definitions
 
-The conversation API will be implemented as a dedicated router in `src/server/api/routers/conversation.ts`:
+The conversation API is implemented as a dedicated router in `src/server/api/routers/conversation.ts`:
 
 ```typescript
-import { protectedProcedure, publicProcedure, router } from '../trpc'
+import { protectedProcedure, router } from '../trpc'
 import { z } from 'zod'
-import {
-  createConversationInput,
-  createMessageInput,
-  generateRepliesInput,
-  processSpeechInput,
-  getConversationHistoryInput,
-  conversationOutput,
-} from '../schemas/conversation'
 
 export const conversationRouter = router({
   /**
@@ -46,12 +38,22 @@ export const conversationRouter = router({
    * @access Protected - requires authentication
    */
   createConversation: protectedProcedure
-    .input(createConversationInput)
-    .output(conversationOutput)
+    .input(z.object({
+      targetLanguage: z.string().min(2).max(10),
+      scenarioId: z.string().uuid().optional()
+    }))
+    .output(z.object({
+      id: z.string().uuid(),
+      targetLanguage: z.string(),
+      scenarioId: z.string().uuid().nullable(),
+      scenarioTitle: z.string(),
+      scenarioContext: z.string().nullable(),
+      createdAt: z.date()
+    }))
     .mutation(async ({ ctx, input }) => {
       return ctx.conversationService.createConversation(
         ctx.session.user.id,
-        input,
+        input
       )
     }),
 
@@ -60,555 +62,516 @@ export const conversationRouter = router({
    * @access Protected - requires authentication
    */
   addMessage: protectedProcedure
-    .input(createMessageInput)
-    .output(conversationOutput)
+    .input(z.object({
+      conversationId: z.string().uuid(),
+      text: z.string().min(1),
+      isUserMessage: z.boolean(),
+      language: z.string().optional()
+    }))
+    .output(z.object({
+      id: z.string().uuid(),
+      text: z.string(),
+      translatedText: z.string(),
+      isUserMessage: z.boolean(),
+      language: z.string().nullable(),
+      createdAt: z.date()
+    }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.conversationService.addMessage(ctx.session.user.id, input)
-    }),
-
-  /**
-   * Generates 6 suggested replies based on conversation context
-   * @access Protected - requires authentication
-   */
-  generateReplies: protectedProcedure
-    .input(generateRepliesInput)
-    .output(z.array(z.string()))
-    .query(async ({ ctx, input }) => {
-      return ctx.conversationService.generateReplies(ctx.session.user.id, input)
-    }),
-      z.object({
-        audioUrl: z.string(),
-        duration: z.number(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      return ctx.conversationService.textToSpeech(ctx.session.user.id, input)
-    }),
-
-  /**
-   * Retrieves conversation history
-   * @access Protected - requires authentication
-   */
-  getHistory: protectedProcedure
-    .input(getConversationHistoryInput)
-    .output(z.array(conversationOutput))
-    .query(async ({ ctx, input }) => {
-      return ctx.conversationService.getConversationHistory(
+      return ctx.conversationService.addMessage(
         ctx.session.user.id,
-        input,
+        input
       )
     }),
 
   /**
-   * Ends a conversation session
+   * Generates exactly 6 suggested replies based on conversation context
    * @access Protected - requires authentication
    */
-  endConversation: protectedProcedure
-    .input(
-      z.object({
-        conversationId: z.string().uuid(),
-      }),
-    )
-    .output(
-      z.object({
-        success: z.boolean(),
-        endedAt: z.date(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      return ctx.conversationService.endConversation(
+  generateReplies: protectedProcedure
+    .input(z.object({
+      conversationId: z.string().uuid()
+    }))
+    .output(z.array(z.string()).length(6))
+    .query(async ({ ctx, input }) => {
+      return ctx.conversationService.generateReplies(
         ctx.session.user.id,
-        input.conversationId,
+        input.conversationId
+      )
+    }),
+
+  /**
+   * Retrieves conversation history (for export only)
+   * @access Protected - requires authentication
+   */
+  getHistory: protectedProcedure
+    .input(z.object({
+      limit: z.number().min(1).max(20).default(10)
+    }))
+    .output(z.array(z.object({
+      id: z.string().uuid(),
+      targetLanguage: z.string(),
+      scenarioTitle: z.string(),
+      scenarioContext: z.string().nullable(),
+      createdAt: z.date(),
+      messages: z.array(z.object({
+        id: z.string().uuid(),
+        text: z.string(),
+        translatedText: z.string(),
+        isUserMessage: z.boolean(),
+        language: z.string().nullable(),
+        createdAt: z.date()
+      }))
+    })))
+    .query(async ({ ctx, input }) => {
+      return ctx.conversationService.getHistory(
+        ctx.session.user.id,
+        input.limit
       )
     }),
 })
 ```
 
-## 3. Service Layer Specifications
+## 3. Simplified Database Schema
 
-### Conversation Service Interface
+### Current Implementation (with Minimal Changes)
 
 ```typescript
-// src/server/api/services/conversationService/interface.ts
-import { z } from 'zod'
+// src/server/db/schema/app.ts (modified section)
+export const conversations = createTable(
+  'conversations',
+  (d) => ({
+    id: d.uuid().primaryKey().default(sql`gen_random_uuid()`),
+    userId: d.uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    targetLang: d.varchar('target_lang', { length: 16 }).notNull(),
+    scenarioId: d.uuid('scenario_id').references(() => scenarios.id, { onDelete: 'set null' }),
+    scenarioTitle: d.text('scenario_title').notNull(),
+    scenarioContext: d.text('scenario_context'),
+    messages: jsonb('messages')
+      .$type<Message[]>()
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    startedAt: timestamp('started_at', { withTimezone: true }).default(sql`now()`).notNull(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    version: d.integer().default(1).notNull(),
+  }),
+  (t) => [
+    index('conversations_user_started_idx').on(t.userId, t.startedAt),
+    index('conversations_target_lang_idx').on(t.targetLang),
+  ],
+)
 
-export interface ConversationService {
-  createConversation(
+export interface Message {
+  id: string
+  text: string
+  translatedText: string
+  isUserMessage: boolean
+  language?: string
+  timestamp: Date
+  choices?: string[]      // The 6 reply options (for user messages)
+  selectedChoice?: string // Which option user selected
+}
+```
+
+### Why This Approach Works
+
+1. **Preserves scenario title/context** even if the original scenario is deleted
+2. **No separate messages table** - perfect for real-time conversation flow
+3. **Single database operation** for conversation history (critical for performance)
+4. **Minimal overhead** - only 2 extra text fields added to current implementation
+5. **No migration needed** - works with existing JSONB structure
+
+## 4. Service Layer Implementation
+
+```typescript
+// src/server/api/services/conversationService/index.ts
+import { db } from '@/server/db'
+import { conversations, scenarios } from '@/server/db/schema'
+import { eq, desc } from 'drizzle-orm'
+
+export class ConversationService {
+  async createConversation(
     userId: string,
     input: {
       targetLanguage: string
       scenarioId?: string
-      context?: string
-    },
-  ): Promise<Conversation>
-
-  addMessage(
+    }
+  ) {
+    // Get scenario details if provided
+    let scenarioTitle = ''
+    let scenarioContext = ''
+    
+    if (input.scenarioId) {
+      const scenario = await db.query.scenarios.findFirst({
+        where: eq(scenarios.id, input.scenarioId)
+      })
+      
+      if (scenario) {
+        scenarioTitle = scenario.title
+        scenarioContext = scenario.context
+      }
+    }
+    
+    const [conversation] = await db.insert(conversations).values({
+      userId,
+      targetLang: input.targetLanguage,
+      scenarioId: input.scenarioId || null,
+      scenarioTitle,
+      scenarioContext,
+      startedAt: new Date()
+    }).returning()
+    
+    return conversation
+  }
+  
+  async addMessage(
     userId: string,
     input: {
       conversationId: string
       text: string
       isUserMessage: boolean
-      audioUrl?: string
       language?: string
-    },
-  ): Promise<Conversation>
-
-  generateReplies(
-    userId: string,
-    input: {
-      conversationId: string
-      maxReplies?: number // Always 6 for our use case
-    },
-  ): Promise<string[]>
-
-  getConversationHistory(
-    userId: string,
-    input: {
-      limit?: number
-      cursor?: string
-    },
-  ): Promise<Conversation[]>
-
-  endConversation(
-    userId: string,
-    conversationId: string,
-  ): Promise<{
-    success: boolean
-    endedAt: Date
-  }>
-}
-```
-
-### LLM Service Interface
-
-```typescript
-// src/server/api/services/llmService/interface.ts
-import { z } from 'zod'
-
-export interface LLMService {
-  /**
-   * Generates multiple reply options based on conversation context
-   */
-  generateReplyOptions(
-    conversationId: string,
-    targetLanguage: string,
-    context?: string,
-    maxReplies?: number,
-  ): Promise<string[]>
-
-  /**
-   * Translates text to target language with context awareness
-   */
-  translateText(
-    text: string,
-    targetLanguage: string,
-    context?: string,
-  ): Promise<string>
-
-  /**
-   * Analyzes conversation for learning insights
-   */
-  analyzeConversation(conversationId: string): Promise<ConversationAnalysis>
-}
-
-interface ConversationAnalysis {
-  vocabularyScore: number
-  grammarAccuracy: number
-  pronunciationTips: string[]
-  suggestedImprovements: string[]
-  culturalNotes: string[]
-}
-```
-
-## 4. Database Schema Requirements
-
-The conversation schema will be implemented in `src/server/db/schema/conversations.ts`:
-
-```typescript
-// src/server/db/schema/conversations.ts
-import {
-  pgTable,
-  uuid,
-  text,
-  timestamp,
-  varchar,
-  jsonb,
-} from 'drizzle-orm/pg-core'
-import { createSelectSchema } from 'drizzle-zod'
-import { z } from 'zod'
-
-export const conversations = pgTable('tt_conversations', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull(),
-  targetLanguage: varchar('target_language', { length: 10 }).notNull(),
-  scenarioId: uuid('scenario_id'),
-  context: text('context'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  endedAt: timestamp('ended_at', { withTimezone: true }),
-  totalDuration: varchar('total_duration', { length: 20 }),
-  languageProficiency: varchar('language_proficiency', { length: 20 }),
-  metrics: jsonb('metrics').$type<ConversationMetrics>().default({}),
-  notes: text('notes'),
-})
-
-export const messages = pgTable('tt_messages', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  conversationId: uuid('conversation_id')
-    .references(() => conversations.id, {
-      onDelete: 'cascade',
+    }
+  ) {
+    // First verify user owns this conversation
+    const conversation = await db.query.conversations.findFirst({
+      where: eq(conversations.id, input.conversationId)
     })
-    .notNull(),
-  userId: uuid('user_id').notNull(),
-  text: text('text').notNull(),
-  translatedText: text('translated_text'),
-  isUserMessage: boolean('is_user_message').notNull(),
-  language: varchar('language', { length: 10 }),
-  audioUrl: text('audio_url'),
-  audioMetrics: jsonb('audio_metrics').$type<AudioMetrics>(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  llmResponseId: uuid('llm_response_id'),
-})
-
-export interface ConversationMetrics {
-  totalMessages: number
-  avgResponseTime: number
-  languageAccuracy: number
-  vocabularyDiversity: number
-  speechQuality: {
-    avgClarity: number
-    avgPronunciation: number
-  }
-}
-
-export interface AudioMetrics {
-  duration: number
-  qualityScore: number
-  processingTime: number
-  confidence?: number
-}
-
-// Zod schemas for validation
-export const selectConversationSchema = createSelectSchema(conversations)
-export const selectMessageSchema = createSelectSchema(messages)
-```
-
-## 5. Type Definitions
-
-### Request/Response Interfaces with Zod Schemas
-
-```typescript
-// src/server/api/schemas/conversation.ts
-import { z } from 'zod'
-
-// Conversation creation
-export const createConversationInput = z.object({
-  targetLanguage: z.string().min(2).max(10),
-  scenarioId: z.string().uuid().optional(),
-  context: z.string().optional(),
-})
-
-// Add message
-export const createMessageInput = z.object({
-  conversationId: z.string().uuid(),
-  text: z.string().min(1),
-  isUserMessage: z.boolean(),
-  language: z.string().optional(),
-})
-
-// Generate replies
-export const generateRepliesInput = z.object({
-  conversationId: z.string().uuid(),
-  maxReplies: z.number().min(1).max(6).default(6),
-})
-
-// Get conversation history
-export const getConversationHistoryInput = z.object({
-  limit: z.number().min(1).max(50).default(20),
-  cursor: z.string().uuid().optional(),
-})
-
-// Conversation output
-export const conversationOutput = z.object({
-  id: z.string().uuid(),
-  userId: z.string().uuid(),
-  targetLanguage: z.string(),
-  scenarioId: z.string().uuid().nullable(),
-  context: z.string().nullable(),
-  createdAt: z.date(),
-  endedAt: z.date().nullable(),
-  totalDuration: z.string().nullable(),
-  languageProficiency: z.string().nullable(),
-  metrics: z.record(z.unknown()),
-  notes: z.string().nullable(),
-  messages: z.array(
-    z.object({
-      id: z.string().uuid(),
-      text: z.string(),
-      translatedText: z.string().nullable(),
-      isUserMessage: z.boolean(),
-      language: z.string().nullable(),
-      createdAt: z.date(),
-    }),
-  ),
-})
-```
-
-## 6. Error Handling Specifications
-
-### Custom Error Types
-
-```typescript
-// src/server/api/errors/conversationErrors.ts
-import { TRPCError } from '@trpc/server'
-
-export enum ConversationErrorCode {
-  CONVERSATION_NOT_FOUND = 'CONVERSATION_NOT_FOUND',
-  TRANSLATION_FAILED = 'TRANSLATION_FAILED',
-  LLM_SERVICE_ERROR = 'LLM_SERVICE_ERROR',
-  MAX_CONCURRENT_SESSIONS = 'MAX_CONCURRENT_SESSIONS',
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-}
-
-export class ConversationError extends TRPCError {
-  constructor(code: ConversationErrorCode, message: string, cause?: unknown) {
-    super({
-      code: 'BAD_REQUEST',
-      message,
-      cause,
-    })
-    this.name = 'ConversationError'
-    // Map to appropriate TRPCError code
-    switch (code) {
-      case ConversationErrorCode.CONVERSATION_NOT_FOUND:
-        this.code = 'NOT_FOUND'
-        break
-      case ConversationErrorCode.AUDIO_PROCESSING_FAILED:
-      case ConversationErrorCode.TRANSLATION_FAILED:
-      case ConversationErrorCode.LLM_SERVICE_ERROR:
-        this.code = 'INTERNAL_SERVER_ERROR'
-        break
-      case ConversationErrorCode.INVALID_AUDIO_QUALITY:
-        this.code = 'BAD_REQUEST'
-        break
-      case ConversationErrorCode.MAX_CONCURRENT_SESSIONS:
-        this.code = 'TOO_MANY_REQUESTS'
-        break
-      case ConversationErrorCode.RATE_LIMIT_EXCEEDED:
-        this.code = 'TOO_MANY_REQUESTS'
-        break
+    
+    if (!conversation || conversation.userId !== userId) {
+      throw new Error('Unauthorized')
+    }
+    
+    // Add new message to the conversation
+    const newMessage = {
+      id: crypto.randomUUID(),
+      text: input.text,
+      translatedText: '',
+      isUserMessage: input.isUserMessage,
+      language: input.language,
+      timestamp: new Date(),
+      choices: [] as string[],
+      selectedChoice: undefined
+    }
+    
+    const updatedMessages = [...conversation.messages, newMessage]
+    
+    // Update conversation with new message
+    const [updatedConv] = await db.update(conversations)
+      .set({
+        messages: updatedMessages
+      })
+      .where(eq(conversations.id, input.conversationId))
+      .returning()
+    
+    return {
+      ...newMessage,
+      createdAt: newMessage.timestamp
     }
   }
-}
-
-// Error handling middleware
-export const conversationErrorMiddleware = trpc.middleware(
-  async ({ path, type, next }) => {
-    try {
-      return await next()
-    } catch (err) {
-      if (err instanceof ConversationError) {
-        throw err
-      }
-
-      // Handle other errors
-      if (err instanceof TRPCError) {
-        throw err
-      }
-
-      // Log unexpected errors
-      console.error(`Unexpected error in ${path} [${type}]`, err)
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'An unexpected error occurred',
+  
+  async generateReplies(
+    userId: string,
+    conversationId: string
+  ): Promise<string[]> {
+    // Verify ownership
+    const conversation = await db.query.conversations.findFirst({
+      where: eq(conversations.id, conversationId)
+    })
+    
+    if (!conversation || conversation.userId !== userId) {
+      throw new Error('Unauthorized')
+    }
+    
+    // Get user profile for context
+    const userProfile = await db.query.users.findFirst({
+      where: eq(users.id, userId)
+    })
+    
+    // Call LLM to get exactly 6 replies
+    const replies = await callLLMForReplies(
+      conversation.messages,
+      conversation.targetLang,
+      userProfile?.travelPreferences || []
+    )
+    
+    // Update the last message with reply options
+    const lastMessage = conversation.messages[conversation.messages.length - 1]
+    lastMessage.choices = replies
+    
+    await db.update(conversations)
+      .set({
+        messages: conversation.messages
       })
-    }
-  },
-)
-```
-
-### Error Code Reference
-
-| Code                    | HTTP Status | Description                                       | Recovery                                           |
-| ----------------------- | ----------- | ------------------------------------------------- | -------------------------------------------------- |
-| CONVERSATION_NOT_FOUND  | 404         | The specified conversation ID doesn't exist       | Verify conversation ID or start new conversation   |
-| TRANSLATION_FAILED      | 500         | Text translation failed                           | Retry request or check input text                  |
-| LLM_SERVICE_ERROR       | 500         | LLM service returned error                        | Retry after brief delay or check service status    |
-| MAX_CONCURRENT_SESSIONS | 429         | User has reached maximum concurrent conversations | End existing conversations before starting new one |
-| RATE_LIMIT_EXCEEDED     | 429         | Request rate exceeds allowed limit                | Wait before sending additional requests            |
-
-## 7. Performance Requirements
-
-### Targets
-
-| Metric             | Target  | Measurement                        |
-| ------------------ | ------- | ---------------------------------- |
-| LLM Response       | < 2.0s  | From query to reply generation     |
-| Database Queries   | < 100ms | For conversation history retrieval |
-| End-to-End Latency | < 3.0s  | Full round-trip for user message   |
-
-### Rate Limiting
-
-| Endpoint        | Limit | Window | Action       |
-| --------------- | ----- | ------ | ------------ |
-| generateReplies | 15    | 60s    | 429 response |
-| addMessage      | 5     | 10s    | 429 response |
-| getHistory      | 30    | 60s    | 429 response |
-
-Rate limits will be implemented using Redis-based token bucket algorithm with the following configuration:
-
-```typescript
-// src/server/api/middleware/rateLimit.ts
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
-
-const redis = Redis.fromEnv()
-const rateLimitConfig = {
-  processSpeech: { tokens: 10, refillRate: 10, interval: '60s' },
-  textToSpeech: { tokens: 20, refillRate: 20, interval: '60s' },
-  generateReplies: { tokens: 15, refillRate: 15, interval: '60s' },
-  addMessage: { tokens: 5, refillRate: 5, interval: '10s' },
-  getHistory: { tokens: 30, refillRate: 30, interval: '60s' },
-}
-
-export const rateLimitMiddleware = (endpoint: keyof typeof rateLimitConfig) => {
-  const config = rateLimitConfig[endpoint]
-  const ratelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.tokenBucket(
-      config.tokens,
-      config.refillRate,
-      config.interval,
-    ),
-    analytics: true,
-  })
-
-  return trpc.middleware(async ({ ctx, next }) => {
-    const userId = ctx.session?.user?.id
-    if (!userId) {
-      return next()
-    }
-
-    const { success } = await ratelimit.limit(userId)
-    if (!success) {
-      throw new TRPCError({
-        code: 'TOO_MANY_REQUESTS',
-        message: 'Rate limit exceeded',
-      })
-    }
-
-    return next()
-  })
+      .where(eq(conversations.id, conversationId))
+    
+    return replies
+  }
+  
+  async getHistory(userId: string, limit: number = 10) {
+    return db.select({
+      id: conversations.id,
+      targetLanguage: conversations.targetLang,
+      scenarioTitle: conversations.scenarioTitle,
+      scenarioContext: conversations.scenarioContext,
+      createdAt: conversations.startedAt,
+      messages: conversations.messages
+    })
+    .from(conversations)
+    .where(eq(conversations.userId, userId))
+    .orderBy(desc(conversations.startedAt))
+    .limit(limit)
+  }
 }
 ```
 
-## 8. Data Flow Diagrams
+## 5. Frontend Implementation Plan
 
-### Conversation Processing Flow
+### 1. Update Chat Page (`src/app/(web-app)/chat/page.tsx`)
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant UI as Chat UI
-    participant TRPC as tRPC Client
-    participant CONV as Conversation Router
-    participant SERV as Conversation Service
-    participant LLM as LLM Service
-    participant DB as Database
+```diff
++ import { trpc } from '@/trpc/react'
 
-    U->>UI: Speaks into microphone
-    UI->>UI: Web Speech API: speechToText()
-    UI->>TRPC: addMessage mutation (text)
-    TRPC->>CONV: Forward request
-    CONV->>SERV: addMessage()
-    SERV->>LLM: generateReplies(conversation)
-    LLM-->>SERV: [reply1, reply2, ...]
-    SERV->>DB: saveMessage()
-    SERV-->>CONV: {replies}
-    CONV-->>TRPC: Response
-    TRPC-->>UI: Update UI with replies
-    UI->>U: Display reply options
+export default function ChatPage() {
++  const utils = trpc.useContext()
++  const createConversation = trpc.conversation.createConversation.useMutation()
++  const addMessage = trpc.conversation.addMessage.useMutation()
++  const generateReplies = trpc.conversation.generateReplies.useQuery(
++    { conversationId: /* current conversation ID */ },
++    { enabled: false }
++  )
++  const { data: history } = trpc.conversation.getHistory.useQuery({ limit: 10 })
+  
+  const [messages, setMessages] = useState<Message[]>([])
++ const [conversationId, setConversationId] = useState<string | null>(null)
+  const [inputValue, setInputValue] = useState('')
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle')
+  const [showInputSheet, setShowInputSheet] = useState(false)
+  const [isReplyBarCollapsed, setIsReplyBarCollapsed] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
++ // Initialize conversation when component mounts
++ useEffect(() => {
++   const initConversation = async () => {
++     // Get scenario from router params
++     const params = new URLSearchParams(window.location.search)
++     const scenarioId = params.get('scenarioId')
++     
++     const response = await createConversation.mutateAsync({
++       targetLanguage: 'ja', // Get from user profile
++       scenarioId: scenarioId || undefined
++     })
++     
++     setConversationId(response.id)
++     setMessages([])
++   }
++   
++   initConversation()
++ }, [])
+
+  const handleSend = () => {
+    if (inputValue.trim() && conversationId) {
+      const newMessage = {
+        id: Date.now().toString(),
+        text: inputValue,
+        translatedText: '',
+        sender: 'user',
+        isUserMessage: true,
+        language: 'en',
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, newMessage])
+      
++     // Save to backend
++     addMessage.mutate({
++       conversationId,
++       text: inputValue,
++       isUserMessage: true,
++       language: 'en'
++     }, {
++       onSuccess: (message) => {
++         // Get 6 reply options
++         generateReplies.refetch()
++       }
++     })
+      
+      setInputValue('')
+      setRecordingState('processing')
+    }
+  }
+
+  const handleRecording = () => {
+    if (recordingState === 'recording') {
+      setRecordingState('processing')
+    } else {
+      setRecordingState('recording')
+      
++     // Start speech recognition
++     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
++     if (SpeechRecognition) {
++       const recognition = new SpeechRecognition()
++       recognition.lang = 'ja' // User's target language
++       recognition.onresult = (event) => {
++         const transcript = event.results[0][0].transcript
++         
++         const newMessage = {
++           id: Date.now().toString(),
++           text: transcript,
++           translatedText: '',
++           sender: 'user',
++           isUserMessage: true,
++           language: 'ja',
++           timestamp: new Date(),
++         }
++         setMessages(prev => [...prev, newMessage])
++         
++         // Save to backend
++         if (conversationId) {
++           addMessage.mutate({
++             conversationId,
++             text: transcript,
++             isUserMessage: true,
++             language: 'ja'
++           }, {
++             onSuccess: () => {
++               // Get 6 reply options
++               generateReplies.refetch()
++             }
++           })
++         }
++       }
++       
++       recognition.onerror = (event) => {
++         console.error('Speech recognition error', event.error)
++         setRecordingState('idle')
++       }
++       
++       recognition.onend = () => {
++         if (recordingState === 'recording') {
++           setRecordingState('idle')
++         }
++       }
++       
++       recognition.start()
++     }
+    }
+  }
+  
++ // Handle reply generation
++ useEffect(() => {
++   if (generateReplies.data) {
++     // Update the last user message with reply options
++     setMessages(prev => {
++       const lastMessage = {...prev[prev.length - 1]}
++       lastMessage.choices = generateReplies.data
++       return [...prev.slice(0, -1), lastMessage]
++     })
++     setRecordingState('idle')
++   }
++ }, [generateReplies.data])
+  
++ // Handle reply selection
++ const handleReplyChipClick = (reply: string) => {
++   setInputValue(reply)
++   setShowInputSheet(true)
++   
++   // Update the message with selected choice
++   setMessages(prev => {
++     const lastMessage = {...prev[prev.length - 1]}
++     lastMessage.selectedChoice = reply
++     return [...prev.slice(0, -1), lastMessage]
++   })
++ }
+  
+  // ... rest of the component implementation
+}
 ```
 
-### Message Flow with TTS
+### 2. Update Input Sheet (`src/app/(web-app)/chat/_components/InputSheet.tsx`)
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant UI as Chat UI
-    participant TRPC as tRPC Client
-    participant CONV as Conversation Router
-    participant SERV as Conversation Service
-    participant LLM as LLM Service
-    participant DB as Database
-
-    U->>UI: Selects reply option
-    UI->>TRPC: addMessage mutation (text)
-    TRPC->>CONV: Forward request
-    CONV->>SERV: addMessage()
-    SERV->>LLM: translateText(reply, targetLang)
-    LLM-->>SERV: Translated text
-    SERV->>DB: saveMessage()
-    SERV-->>CONV: {message}
-    CONV-->>TRPC: Response
-    TRPC-->>UI: Update UI
-    UI->>UI: Web Speech Synthesis: speak()
-    UI->>U: Play audio response
+```diff
+export default function InputSheet({
+  value,
+  onChange,
+  onSubmit,
+  recordingState,
+  onRecording,
+  onClose,
++ replyOptions = []
+}: {
+  value: string
+  onChange: (value: string) => void
+  onSubmit: () => void
+  recordingState: 'idle' | 'recording' | 'processing'
+  onRecording: () => void
+  onClose: () => void
++ replyOptions?: string[]
+}) {
+  return (
+    <div className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 p-4">
+      {/* Existing input components */}
+      
++     {/* Reply options */}
++     {replyOptions.length > 0 && (
++       <div className="space-y-2 mt-2">
++         {replyOptions.map((option, index) => (
++           <button
++             key={index}
++             onClick={() => {
++               onChange(option)
++               onSubmit()
++             }}
++             className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
++           >
++             {option}
++           </button>
++         ))}
++       </div>
++     )}
+      
+      {/* Close button */}
+    </div>
+  )
+}
 ```
 
-## 9. Integration Points
+## 6. Changelog: What Was Removed
 
-### With Existing Architecture
+| Feature Removed | Reason for Removal |
+|----------------|-------------------|
+| Language proficiency tracking | Not needed for real-time conversation |
+| Audio metrics analysis | Not relevant for immediate in-person use |
+| Conversation analytics | TravelTongue is not an analytics tool |
+| Speech processing endpoints | Browser Web Speech API handles this directly |
+| Message search capabilities | Users don't search conversation history |
+| Complex rate limiting | Unnecessary for this use case |
+| Detailed error codes | Simplified to basic error handling |
+| Text-to-speech API | Browser speechSynthesis handles this directly |
+| Translation API | Handled by LLM service internally |
+| Multi-language history | Only tracks current conversation language |
+| Long-term message storage | Optimized for immediate use, not archives |
 
-1. **Authentication Integration**
-   - Uses existing NextAuth session management
-   - All endpoints require protectedProcedure
-   - User ID from `ctx.session.user.id` is used for data isolation
+## 7. Implementation Checklist
 
-2. **LLM Service Integration**
-   - Reuses existing LLM service architecture
-   - Extends current `llmService` with conversation-specific functionality
-   - Uses same OpenAI configuration and retry logic
+1. [ ] Update `src/server/db/schema/app.ts` with scenarioTitle and scenarioContext
+2. [ ] Implement tRPC router in `src/server/api/routers/conversation.ts`
+3. [ ] Create conversation service in `src/server/api/services/conversationService/`
+4. [ ] Update chat page with tRPC integration
+5. [ ] Enhance InputSheet to display reply options
+6. [ ] Implement Web Speech API integration
+7. [ ] Update history page to use getHistory endpoint
+8. [ ] Add Prettier formatting validation for all modified files
 
-3. **Database Integration**
-   - Follows Drizzle ORM patterns established in existing schema files
-   - Uses same `tt_` table prefix convention
-   - Integrates with existing user authentication tables
+## 8. Performance Considerations
 
-4. **Frontend Integration**
-   - Compatible with existing tRPC React hooks
-   - Follows same error handling patterns as other routers
-   - Works with existing loading states and UI patterns
+- **JSONB storage** provides single-read access to entire conversation
+- **Minimal fields** reduce database load
+- **No joins needed** for conversation display
+- **Browser-native STT/TTS** eliminates API latency
+- **Exactly 6 replies** ensures predictable response times
 
-5. **Error Monitoring**
-   - Integrates with existing error tracking system
-   - Uses same error categorization approach
-   - Provides detailed metrics for debugging
-
-### Setup Instructions
-
-1. Register the conversation router in `src/server/api/root.ts`:
-
-```typescript
-import { conversationRouter } from './routers/conversation'
-
-export const appRouter = router({
-  // ... existing routers
-  conversation: conversationRouter,
-})
-```
-
-2. Implement the service layer in `src/server/api/services/conversationService/` following the interface specifications
-
-3. Create the database schema in `src/server/db/schema/conversations.ts`
-
-4. Add required environment variables:
-
-```
-# No speech service environment variables needed
-```
-
-5. Configure rate limiting in `src/server/api/middleware/rateLimit.ts` (remove speech-related rate limits)
+This implementation delivers exactly what TravelTongue needs:
+- Real-time conversation flow for immediate in-person use
+- Preservation of scenario context even when scenarios are deleted
+- Exactly 6 reply options as specified in project requirements
+- Lightweight implementation without unnecessary complexity
+- Fast performance critical for real-world travel situations
