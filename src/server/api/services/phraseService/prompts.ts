@@ -194,3 +194,111 @@ Scenario context: {{scenarioContext}}
 Label input: {{label}}
 User info: {{userInfo}}
 `
+
+export const GENERATE_LIVE_REPLY_CHOICES_PROMPT = `
+Your goal is to generate exactly six polite reply options for live conversation based on scenario and message history.
+
+Goal
+
+From the current scenario and conversation history, produce a JSON ARRAY of exactly six concise, natural, polite reply options that the user can tap to respond in real-time. The replies should cover diverse conversational needs while maintaining appropriate politeness.
+
+Inputs
+
+scenario (string, English): Brief description of the current situation. Example: "Ordering food at a restaurant in Tokyo".
+
+messages (array): Array of message objects in the current conversation, with 'role' (user/assistant) and 'content'. Example: [{"role": "user", "content": "I would like the sushi set"}, {"role": "assistant", "content": "Would you like miso soup with that?"}]
+
+targetLang (string, IETF code): Target language for translation (e.g., ja-JP, ko-KR).
+
+uiLang (string): Always "en" for now.
+
+Output (STRICT)
+
+Return only a JSON ARRAY (no wrapper object, no prose) containing exactly six objects with the following keys:
+
+id (string): Unique identifier for the reply type (e.g., "accept", "decline", "clarify", "gratitude", "alternative", "helpful").
+
+label (string, English, 2-4 words): Short button text for the reply option.
+
+localAnswer (string, in user's preferred language): Natural, polite sentence the user would say as a reply.
+
+targetAnswer (string, in targetLang script only): Exact phrase to be spoken via TTS in the target language.
+
+Politeness Rules
+
+Use natural, everyday polite register appropriate for the context (e.g., です/ます form in Japanese). Avoid overly stiff business keigo or casual slang. The tone should match how locals speak to strangers in daily interactions.
+
+Diversity Requirements (MUST INCLUDE ONE OF EACH)
+
+1. Confirm/Accept: Agreeing to a suggestion or confirming understanding
+2. Decline/Refuse: Politely declining an offer or request
+3. Clarify/Repeat: Asking for repetition or clarification
+4. Gratitude: Expressing thanks
+5. Context-Specific Alternative: Offering a relevant alternative within the scenario
+6. Extra Helpful Option: Adding something helpful beyond the immediate request
+
+Formatting Rules (Hard)
+
+Output only the JSON ARRAY. No markdown, no comments, no additional text.
+Array must contain exactly six items.
+All required keys present and non-empty.
+targetAnswer must be in target language script only (no romaji, no English).
+
+Example Input
+
+{
+  "scenario": "Ordering food at a restaurant in Tokyo",
+  "messages": [
+    {"role": "user", "content": "I would like the sushi set"},
+    {"role": "assistant", "content": "Would you like miso soup with that?"}
+  ],
+  "targetLang": "ja-JP",
+  "uiLang": "en"
+}
+
+Example Output
+
+[
+  {
+    "id": "accept",
+    "label": "Yes please",
+    "localAnswer": "Yes, please add miso soup.",
+    "targetAnswer": "はい、味噌汁もお願いします。"
+  },
+  {
+    "id": "decline",
+    "label": "No thanks",
+    "localAnswer": "No, thank you.",
+    "targetAnswer": "いいえ、大丈夫です。"
+  },
+  {
+    "id": "clarify",
+    "label": "Can you repeat?",
+    "localAnswer": "Could you say that again more slowly?",
+    "targetAnswer": "もう少しゆっくり話していただけますか？"
+  },
+  {
+    "id": "gratitude",
+    "label": "Thank you",
+    "localAnswer": "Thank you very much.",
+    "targetAnswer": "どうもありがとうございます。"
+  },
+  {
+    "id": "alternative",
+    "label": "With green tea",
+    "localAnswer": "Can I have green tea instead?",
+    "targetAnswer": "緑茶に変更できますか？"
+  },
+  {
+    "id": "helpful",
+    "label": "For two people",
+    "localAnswer": "Actually, we'll need two sets.",
+    "targetAnswer": "実は、2人分お願いします。"
+  }
+]
+
+Scenario: {{scenario}}
+Messages: {{messages}}
+Target language: {{targetLang}}
+UI language: {{uiLang}}
+`
