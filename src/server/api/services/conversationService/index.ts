@@ -109,13 +109,12 @@ export async function addMessage(
 
   const updatedMessages = [...conversation.messages, newDbMessage]
 
-  const [updatedConv] = await db
+  await db
     .update(conversations)
     .set({
       messages: updatedMessages,
     })
     .where(eq(conversations.id, input.conversationId))
-    .returning()
 
   return {
     ...newAppMessage,
@@ -135,7 +134,7 @@ export async function generateReplies(
     throw new Error('Unauthorized')
   }
 
-  const userProfile = await db.query.users.findFirst({
+  await db.query.users.findFirst({
     where: eq(users.id, userId),
   })
 

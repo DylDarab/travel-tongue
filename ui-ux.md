@@ -1,151 +1,180 @@
-<![CDATA[# Travel Tongue App - UX/UI Improvement Recommendations
+# Translation Prompt UI/UX Specification
 
-## Onboarding Experience Improvements
+## 1. Problem Brief
+**Users**: A2-B1 Japanese learners preparing for travel  
+**Goals**: 
+- Reduce anxiety in spontaneous conversations
+- Provide immediate translation of heard phrases
+- Seamlessly transition to practice mode
+- Build confidence through contextual learning
 
-### Progressive Profiling
-- **Problem**: Current onboarding requires all information upfront, leading to user drop-off
-- **Solution**: Implement multi-step onboarding with contextual information gathering
-- **Priority**: High
-- **Complexity**: Medium
-- **Implementation**:
-  - Break into 3 steps: Personal Info → Travel Preferences → Additional Context
-  - Add visual progress indicator with step numbers
-  - Save partial progress to localStorage
-- **User Flow**:
-  1. Personal info (name, email)
-  2. Travel details (destination, dates)
-  3. Language preferences
-  4. Optional: Learning preferences
-- **Data Flow**: Client-state → tRPC mutation → Drizzle ORM → PostgreSQL
+**Constraints**:
+- Mobile-first responsive design (320px min width)
+- 44px minimum touch targets
+- Teal color scheme (`teal-500` primary, `teal-50` background)
+- Must preserve scenario context during transitions
+- Handle edge cases: permissions, detection failures
 
-### Real-time Validation
-- **Problem**: Form errors shown only after submission
-- **Solution**: Add inline validation with React Hook Form + Zod
-- **Priority**: Medium
-- **Complexity**: Low
-- **Example**:
-```tsx
-<TextInput
-  label="Email"
-  error={errors.email?.message}
-  {...register('email', { required: 'Email is required' })}
-/>
+## 2. User Flow
+```mermaid
+graph TD
+    A[Passive Listening] --> B{Japanese Detected?}
+    B -->|Yes| C[Show Translation Prompt]
+    B -->|No| D[Show Listening Indicator]
+    C --> E[User Views Translation]
+    E --> F{Start Conversation?}
+    F -->|Yes| G[Transition to Chat]
+    F -->|No| H[Dismiss & Resume Listening]
+    D -->|Timeout| I[Show Help Hint]
+    
+    subgraph Error Handling
+        J[Microphone Permission] --> K{Allowed?}
+        K -->|No| L[Show Permission Education]
+        K -->|Yes| M[Resume Listening]
+        N[Detection Failure] --> O[Show Error + Retry]
+    end
 ```
 
-## Navigation & Information Architecture
+**Key Decision Points**:
+1. First-time users see educational tooltip about passive listening
+2. After 3 dismissals, show encouragement to practice
+3. Low-confidence detections show "Did you mean?" options
+4. Battery <20%: reduce listening frequency
 
-### Consistent Navigation
-- **Problem**: Inconsistent back behavior across sections
-- **Solution**: Implement unified navigation pattern
-- **Priority**: High
-- **Complexity**: Low
-- **Component Spec**:
-  - Navbar component with persistent back button
-  - Breadcrumbs for multi-step flows
-  - ARIA: `aria-label="Main navigation"`
+**Edge Cases**:
+- Noisy environments: auto-filter background noise
+- Quick speech: buffer last 3 seconds
+- Multiple languages: prioritize Japanese detection
+- Screen readers: announce state changes
 
-### Empty States
-- **Problem**: Blank screens when no content exists
-- **Solution**: Design contextual empty states
-- **Priority**: Medium
-- **Complexity**: Low
-- **Example**:
-```tsx
-<div role="status" aria-live="polite">
-  <EmptyState 
-    icon={<GlobeIcon />}
-    title="No phrases added"
-    action={<Button>Add First Phrase</Button>}
-  />
+## 3. UI Specification
+**Translation Prompt (Radix Dialog)**:
+- **Structure**:
+  ```
+  [Overlay]
+  ┌──────────────────────────────┐
+  │           Header             │
+  ├──────────────────────────────┤
+  │ Original Phrase (Japanese)   │
+  │ Translation (English)        │
+  ├──────────────────────────────┤
+  │   Primary: Start Conversation│
+  │   Secondary: Dismiss        │
+  └──────────────────────────────┘
+  ```
+- **States**:
+  - Idle: Hidden
+  - Loading: Spinner + "Translating..."
+  - Success: Show phrase pair
+  - Error: "Couldn't translate" + retry button
+- **Accessibility**:
+  - `role="dialog"`
+  - `aria-labelledby="translation-heading"`
+  - Focus trapped in modal
+  - Escape key closes
+- **Copy**:
+  - Header: "Ready to practice?"
+  - Primary: "Start Conversation"
+  - Secondary: "Not now"
+
+**Listening Indicators**:
+- Active: Pulsing teal dot + "Listening..."
+- Permissions: Icon + "Enable microphone"
+- Error: "Couldn't listen" + fix instructions
+
+## 4. Data & State
+**Client-Side State**:
+```typescript
+interface TranslationState {
+  status: 'idle' | 'listening' | 'processing' | 'ready' | 'error';
+  original?: string;
+  translation?: string;
+  error?: 'permission' | 'detection' | 'translation';
+}
+```
+
+**Server Boundaries**:
+- Speech detection via Web Speech API (client)
+- Translation via tRPC mutation to `translatePhrase`
+- Conversation context preserved through URL params
+
+**Optimistic Updates**:
+- Immediate "Translating..." state on detection
+- Error fallback: show cached translation if available
+
+## 5. Metrics & Events
+**Analytics Hooks**:
+```typescript
+// Translation prompt shown
+trackEvent('translation_prompt_viewed', { scenarioId });
+
+// User started conversation
+trackEvent('conversation_started', { 
+  source: 'translation_prompt',
+  phrase: originalText
+});
+
+// Dismissal
+trackEvent('translation_dismissed', { 
+  scenarioId, 
+  dismissalCount: userDismissals 
+});
+```
+
+## 6. Illustrative Markup
+```html
+<div class="relative">
+  <!-- Listening indicator -->
+  <div 
+    aria-live="polite"
+    class="fixed top-4 right-4 w-3 h-3 bg-teal-500 rounded-full animate-pulse"
+  ></div>
+
+  <!-- Translation Dialog -->
+  <div role="dialog" aria-labelledby="translation-heading">
+    <div class="fixed inset-0 bg-black/50 z-40"></div>
+    
+    <div class="fixed inset-0 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 w-full max-w-md">
+        <h2 id="translation-heading" class="text-xl font-bold mb-4">
+          Ready to practice?
+        </h2>
+        
+        <div class="space-y-4">
+          <div>
+            <p class="text-gray-500">You heard:</p>
+            <p class="text-lg" lang="ja">こんにちは</p>
+          </div>
+          
+          <div>
+            <p class="text-gray-500">Translation:</p>
+            <p class="text-lg">Hello</p>
+          </div>
+        </div>
+        
+        <div class="mt-6 flex gap-3 justify-end">
+          <button 
+            class="px-4 py-2 border rounded-lg"
+            aria-label="Dismiss translation"
+          >
+            Not now
+          </button>
+          <button 
+            class="px-4 py-2 bg-teal-500 text-white rounded-lg"
+            aria-label="Start conversation with this phrase"
+          >
+            Start Conversation
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 ```
 
-## Visual Design & Interaction Patterns
-
-### Action Feedback
-- **Problem**: No confirmation for user actions
-- **Solution**: Implement toast notifications
-- **Priority**: High
-- **Complexity**: Low
-- **Implementation**: Use `sonner` library with tRPC hooks
-- **States**:
-  - Loading: "Saving phrase..."
-  - Success: "Phrase saved!"
-  - Error: "Failed to save"
-
-### Accessibility Compliance
-- **Problem**: Inconsistent focus states
-- **Solution**: System-wide accessibility audit
-- **Priority**: High
-- **Complexity**: Medium
-- **Key Fixes**:
-  - Ensure 4.5:1 contrast ratios (WCAG AA)
-  - Add focus rings to all interactive elements
-  - Implement screen reader announcements
-
-## Content & Messaging
-
-### Contextual Help
-- **Problem**: Unclear field purposes
-- **Solution**: Add tooltips and helper text
-- **Priority**: Medium
-- **Complexity**: Low
-- **Example**:
-```tsx
-<TextInput
-  label="Target Language"
-  helperText="We'll customize lessons based on this"
-/>
-```
-
-### Error Messaging
-- **Problem**: Generic error messages
-- **Solution**: Contextual error explanations
-- **Priority**: High
-- **Complexity**: Medium
-- **Patterns**:
-  - Field-specific: "Email must be valid"
-  - Action-specific: "Couldn't save phrase - try again?"
-
-## Technical Implementation
-
-### Performance Optimizations
-- **Problem**: Slow loading scenarios
-- **Solution**: Implement React Suspense
-- **Priority**: Medium
-- **Complexity**: High
-- **Implementation**:
-```tsx
-<Suspense fallback={<ScenarioSkeleton />}>
-  <ScenarioList />
-</Suspense>
-```
-
-### State Management
-- **Problem**: Frequent refetching
-- **Solution**: Optimize tRPC caching
-- **Priority**: Medium
-- **Complexity**: High
-- **Pattern**:
-  - StaleTime: 60 seconds
-  - Optimistic updates for mutations
-
-### Error Boundaries
-- **Problem**: Full crashes on errors
-- **Solution**: Component error boundaries
-- **Priority**: High
-- **Complexity**: Medium
-- **Implementation**:
-```tsx
-<ErrorBoundary fallback={<ErrorFallback />}>
-  <ScenarioPage />
-</ErrorBoundary>
-```
-
-## Metrics & Analytics
-- **Event Tracking**:
-  - `onboarding_complete`
-  - `phrase_added`
-  - `scenario_started`
-- **Implementation**: tRPC middleware
-]]>
+### Implementation Notes
+1. Component location: `src/app/(web-app)/chat/_components/TranslationPrompt.tsx`
+2. Uses Radix Dialog primitive with focus management
+3. Animation with Tailwind `animate-pulse`
+4. ARIA roles for screen reader support
+5. Responsive breakpoints for mobile

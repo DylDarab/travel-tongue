@@ -1,19 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Mic,
-  MicOff,
-} from 'lucide-react'
 import { TopBar } from '@/app/_components/TopBar'
-import Button from '@/components/Button'
-import InputSheet from './_components/InputSheet'
 import { api } from '@/trpc/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { ChevronDown, ChevronUp, Loader2, Mic, MicOff } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import InputSheet from './_components/InputSheet'
+import { TranslationPrompt } from './_components/TranslationPrompt'
+import { useSpeechRecognition } from './_hooks/useSpeechRecognition'
+import { useChatFlow } from './_hooks/useChatFlow'
 
 type Message = {
   id: string
@@ -26,48 +20,91 @@ type Message = {
 type RecordingState = 'idle' | 'recording' | 'processing'
 
 export default function ChatPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const scenarioId = searchParams.get('scenarioId')
-
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [recordingState, setRecordingState] = useState<RecordingState>('idle')
   const [showInputSheet, setShowInputSheet] = useState(false)
   const [isReplyBarCollapsed, setIsReplyBarCollapsed] = useState(false)
+  const [showTranslationPrompt, setShowTranslationPrompt] = useState(false)
+  const [detectedJapanese, setDetectedJapanese] = useState('')
+  const [translatedEnglish, setTranslatedEnglish] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // tRPC hooks
-  const createConversation = api.conversations.createConversation.useMutation()
-  const addMessage = api.conversations.addMessage.useMutation()
-  const [conversationId, setConversationId] = useState<string | null>(null)
+  // Chat flow hook
+  const {
+    state: chatState,
+    sendMessage,
+    startConversationWithPhrase,
+  } = useChatFlow()
+
+  const {
+    isListening,
+    isProcessing,
+    isSupported,
+    transcript,
+    error: speechError,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition()
+
+  const translateText = api.conversations.translateText.useMutation<{
+    translatedText: string
+  }>()
+
   const generateReplies = api.conversations.generateReplies.useQuery(
-    { conversationId: conversationId ?? '' },
+    { conversationId: chatState.conversationId ?? '' },
     { enabled: false },
   )
 
-  // Initialize conversation when component mounts
   useEffect(() => {
-    const initConversation = async () => {
-      try {
-        const response = await createConversation.mutateAsync({
-          targetLanguage: 'ja', // Get from user profile or default
-          scenarioId: scenarioId ?? undefined,
-        })
-
-        setConversationId(response.id)
-        setMessages([])
-      } catch (error) {
-        console.error('Failed to create conversation:', error)
-      }
+    if (transcript && isListening) {
+      setInputValue(transcript)
     }
+  }, [transcript, isListening])
 
-    void initConversation()
-  }, [createConversation, scenarioId])
+  useEffect(() => {
+    if (!isListening && transcript && !isProcessing) {
+      setDetectedJapanese(transcript)
+      setShowTranslationPrompt(true)
 
-  const handleSend = () => {
-    if (inputValue.trim() && conversationId) {
-      // Add user message to UI immediately
+      translateText
+        .mutateAsync({
+          text: transcript,
+          targetLanguage: 'en',
+        })
+        .then((result: { translatedText: string }) => {
+          setTranslatedEnglish(result.translatedText)
+        })
+        .catch((error: unknown) => {
+          console.error('Translation error:', error)
+          setTranslatedEnglish('Translation unavailable')
+        })
+    }
+  }, [isListening, transcript, isProcessing, translateText])
+
+  useEffect(() => {
+    if (isProcessing) {
+      setRecordingState('processing')
+    }
+  }, [isProcessing])
+
+  useEffect(() => {
+    if (speechError) {
+      console.error('Speech recognition error:', speechError)
+      setRecordingState('idle')
+    }
+  }, [speechError])
+
+  // Handle chat flow errors
+  useEffect(() => {
+    if (chatState.error) {
+      console.error('Chat flow error:', chatState.error)
+    }
+  }, [chatState.error])
+
+  const handleSend = async () => {
+    if (inputValue.trim() && chatState.conversationId) {
       const newUserMessage: Message = {
         id: Date.now().toString(),
         text: inputValue,
@@ -77,39 +114,62 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, newUserMessage])
       setInputValue('')
       setRecordingState('processing')
+      resetTranscript()
 
-      // Send message to backend
-      addMessage.mutate(
-        {
-          conversationId,
-          text: inputValue,
-          isUserMessage: true,
-          language: 'en', // Get from user profile
-        },
-        {
-          onSuccess: (message) => {
-            // Get 6 reply options
-            void generateReplies.refetch()
-          },
-          onError: (error) => {
-            console.error('Failed to send message:', error)
-            setRecordingState('idle')
-          },
-        },
-      )
+      try {
+        await sendMessage(inputValue, 'ja')
+      } catch (error) {
+        console.error('Failed to send message:', error)
+        setRecordingState('idle')
+      }
     }
+  }
+
+  const handleStartConversation = async (translatedText: string) => {
+    setShowTranslationPrompt(false)
+
+    if (chatState.conversationId) {
+      // Add user message to UI immediately
+      const newUserMessage: Message = {
+        id: Date.now().toString(),
+        text: detectedJapanese,
+        sender: 'user',
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, newUserMessage])
+
+      try {
+        await startConversationWithPhrase(detectedJapanese, translatedText)
+      } catch (error) {
+        console.error('Failed to start conversation:', error)
+        setRecordingState('idle')
+      }
+    }
+  }
+
+  const handleDismissTranslation = () => {
+    setShowTranslationPrompt(false)
+    setDetectedJapanese('')
+    setTranslatedEnglish('')
+    resetTranscript()
+    setRecordingState('idle')
   }
 
   const handleRecording = () => {
     if (recordingState === 'recording') {
+      stopListening()
       setRecordingState('processing')
-      // TODO: Implement speech recognition
-      // For now, we'll just simulate processing
-      setTimeout(() => {
-        setRecordingState('idle')
-      }, 1500)
     } else {
-      setRecordingState('recording')
+      if (isSupported) {
+        resetTranscript()
+        startListening()
+        setRecordingState('recording')
+      } else {
+        setRecordingState('recording')
+        setTimeout(() => {
+          setRecordingState('idle')
+        }, 1500)
+      }
     }
   }
 
@@ -140,6 +200,10 @@ export default function ChatPage() {
   const handleCloseInputSheet = () => {
     setShowInputSheet(false)
     setInputValue('')
+    if (isListening) {
+      stopListening()
+      setRecordingState('idle')
+    }
   }
 
   useEffect(() => {
@@ -156,7 +220,8 @@ export default function ChatPage() {
           <>
             <button
               onClick={handleRecording}
-              className="min-h-[48px] min-w-[48px] rounded-full p-3 transition-colors hover:bg-gray-100 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              disabled={!isSupported && recordingState !== 'recording'}
+              className="min-h-[48px] min-w-[48px] rounded-full p-3 transition-colors hover:bg-gray-100 focus:ring-2 focus:ring-teal-500 focus:outline-none disabled:opacity-50"
               aria-label={
                 recordingState === 'idle'
                   ? 'Start recording'
@@ -176,8 +241,6 @@ export default function ChatPage() {
           </>
         }
       />
-      {/* Transcript Panel */}
-      {/* Transcript Panel */}
       <div className="flex-1 space-y-4 overflow-y-auto p-4 pt-20">
         {messages.map((message) => (
           <div
@@ -208,7 +271,6 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply Chips */}
       <div className="border-t border-gray-200 bg-white p-4">
         <div className="flex flex-col gap-3">
           {!isReplyBarCollapsed &&
@@ -244,7 +306,16 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input Sheet */}
+      {/* Translation Prompt */}
+      {showTranslationPrompt && (
+        <TranslationPrompt
+          detectedJapanese={detectedJapanese}
+          translatedEnglish={translatedEnglish}
+          onDismiss={handleDismissTranslation}
+          onStartConversation={handleStartConversation}
+        />
+      )}
+
       {showInputSheet && (
         <InputSheet
           value={inputValue}

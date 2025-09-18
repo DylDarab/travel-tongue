@@ -6,6 +6,7 @@ import {
   generateReplies,
   getHistory,
 } from '../services/conversationService'
+import { translateText } from '../services/llmService'
 
 export const conversationRouter = createTRPCRouter({
   /**
@@ -146,5 +147,36 @@ export const conversationRouter = createTRPCRouter({
           createdAt: msg.timestamp,
         })),
       }))
+    }),
+
+  /**
+   * Translates text to a target language
+   * @access Protected - requires authentication
+   */
+  translateText: protectedProcedure
+    .input(
+      z.object({
+        text: z.string().min(1),
+        targetLanguage: z.string().min(2).max(10),
+      }),
+    )
+    .output(
+      z.object({
+        translatedText: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const translatedText = await translateText(
+        input.text,
+        input.targetLanguage,
+      )
+
+      if (!translatedText) {
+        throw new Error('Failed to translate text')
+      }
+
+      return {
+        translatedText,
+      }
     }),
 })
