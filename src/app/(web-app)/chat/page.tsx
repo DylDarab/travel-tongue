@@ -12,98 +12,101 @@ import {
 import { TopBar } from '@/app/_components/TopBar'
 import Button from '@/components/Button'
 import InputSheet from './_components/InputSheet'
+import { api } from '@/trpc/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type Message = {
   id: string
   text: string
   sender: 'user' | 'ai'
   timestamp: Date
+  choices?: string[]
 }
 
 type RecordingState = 'idle' | 'recording' | 'processing'
 
-const mockTranscript: Message[] = [
-  {
-    id: '1',
-    text: 'Hello! How do I ask for directions to the train station?',
-    sender: 'user',
-    timestamp: new Date(2025, 8, 17, 12, 30),
-  },
-  {
-    id: '2',
-    text: 'Excuse me, where is the train station?',
-    sender: 'ai',
-    timestamp: new Date(2025, 8, 17, 12, 30, 5),
-  },
-  {
-    id: '3',
-    text: 'Could you please show me the way to the train station?',
-    sender: 'ai',
-    timestamp: new Date(2025, 8, 17, 12, 30, 10),
-  },
-]
-
-const mockReplies = [
-  'Where is the train station?',
-  'Can you help me find the train station?',
-  'How do I get to the train station?',
-  'Is the train station near here?',
-  'Which way to the train station?',
-  'Train station directions please',
-]
-
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>(mockTranscript)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const scenarioId = searchParams.get('scenarioId')
+
+  const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [recordingState, setRecordingState] = useState<RecordingState>('idle')
   const [showInputSheet, setShowInputSheet] = useState(false)
   const [isReplyBarCollapsed, setIsReplyBarCollapsed] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // tRPC hooks
+  const createConversation = api.conversations.createConversation.useMutation()
+  const addMessage = api.conversations.addMessage.useMutation()
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const generateReplies = api.conversations.generateReplies.useQuery(
+    { conversationId: conversationId ?? '' },
+    { enabled: false },
+  )
+
+  // Initialize conversation when component mounts
+  useEffect(() => {
+    const initConversation = async () => {
+      try {
+        const response = await createConversation.mutateAsync({
+          targetLanguage: 'ja', // Get from user profile or default
+          scenarioId: scenarioId ?? undefined,
+        })
+
+        setConversationId(response.id)
+        setMessages([])
+      } catch (error) {
+        console.error('Failed to create conversation:', error)
+      }
+    }
+
+    void initConversation()
+  }, [createConversation, scenarioId])
+
   const handleSend = () => {
-    if (inputValue.trim()) {
-      const newMessage: Message = {
+    if (inputValue.trim() && conversationId) {
+      // Add user message to UI immediately
+      const newUserMessage: Message = {
         id: Date.now().toString(),
         text: inputValue,
         sender: 'user',
         timestamp: new Date(),
       }
-      setMessages((prev) => [...prev, newMessage])
+      setMessages((prev) => [...prev, newUserMessage])
       setInputValue('')
       setRecordingState('processing')
 
-      // Simulate AI response
-      setTimeout(() => {
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          text:
-            mockReplies[Math.floor(Math.random() * mockReplies.length)] ??
-            'How can I help?',
-          sender: 'ai',
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, aiResponse])
-        setRecordingState('idle')
-      }, 1000)
+      // Send message to backend
+      addMessage.mutate(
+        {
+          conversationId,
+          text: inputValue,
+          isUserMessage: true,
+          language: 'en', // Get from user profile
+        },
+        {
+          onSuccess: (message) => {
+            // Get 6 reply options
+            void generateReplies.refetch()
+          },
+          onError: (error) => {
+            console.error('Failed to send message:', error)
+            setRecordingState('idle')
+          },
+        },
+      )
     }
   }
 
   const handleRecording = () => {
     if (recordingState === 'recording') {
       setRecordingState('processing')
-      // Simulate processing
+      // TODO: Implement speech recognition
+      // For now, we'll just simulate processing
       setTimeout(() => {
         setRecordingState('idle')
-        // Simulate AI response
-        const aiResponse: Message = {
-          id: Date.now().toString(),
-          text:
-            mockReplies[Math.floor(Math.random() * mockReplies.length)] ??
-            'How can I help?',
-          sender: 'ai',
-          timestamp: new Date(),
-        }
-        setMessages((prev) => [...prev, aiResponse])
       }, 1500)
     } else {
       setRecordingState('recording')
@@ -114,6 +117,20 @@ export default function ChatPage() {
     setInputValue(reply)
     setShowInputSheet(true)
   }
+
+  // Handle reply generation
+  useEffect(() => {
+    if (generateReplies.data) {
+      // Update the last user message with reply options
+      setMessages((prev) => {
+        if (prev.length === 0) return prev
+        const lastMessage: Message = { ...prev[prev.length - 1] } as Message
+        lastMessage.choices = generateReplies.data
+        return [...prev.slice(0, -1), lastMessage]
+      })
+      setRecordingState('idle')
+    }
+  }, [generateReplies.data])
 
   const handleTypeOwnClick = () => {
     setShowInputSheet(true)
@@ -195,15 +212,18 @@ export default function ChatPage() {
       <div className="border-t border-gray-200 bg-white p-4">
         <div className="flex flex-col gap-3">
           {!isReplyBarCollapsed &&
-            mockReplies.slice(0, 6).map((reply, index) => (
-              <button
-                key={index}
-                onClick={() => handleReplyChipClick(reply)}
-                className="w-full rounded-xl border border-teal-500 bg-white px-4 py-3 text-left text-base text-teal-700 transition-colors hover:bg-teal-50 focus:bg-teal-50 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-              >
-                {reply}
-              </button>
-            ))}
+            messages.length > 0 &&
+            messages[messages.length - 1]?.choices
+              ?.slice(0, 6)
+              .map((reply, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleReplyChipClick(reply)}
+                  className="w-full rounded-xl border border-teal-500 bg-white px-4 py-3 text-left text-base text-teal-700 transition-colors hover:bg-teal-50 focus:bg-teal-50 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                >
+                  {reply}
+                </button>
+              ))}
           <button
             onClick={() => setIsReplyBarCollapsed(!isReplyBarCollapsed)}
             className="flex w-full items-center justify-between rounded-xl border border-teal-500 bg-white px-4 py-3 text-left text-base text-teal-700 transition-colors hover:bg-teal-50 focus:bg-teal-50 focus:ring-2 focus:ring-teal-500 focus:outline-none"
@@ -233,6 +253,11 @@ export default function ChatPage() {
           recordingState={recordingState}
           onRecording={handleRecording}
           onClose={handleCloseInputSheet}
+          replyOptions={
+            messages.length > 0
+              ? (messages[messages.length - 1]?.choices ?? [])
+              : []
+          }
         />
       )}
     </div>

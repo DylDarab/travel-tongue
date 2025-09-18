@@ -116,7 +116,7 @@ export async function translateText(
 ): Promise<string | null> {
   console.log('🚀 ~ translateText ~ targetLang:', targetLang)
   console.log('🚀 ~ translateText ~ englishPhrase:', englishPhrase)
-  
+
   const prompt = replaceVariableInPrompt(TRANSLATE_PHRASE_PROMPT, {
     englishPhrase,
     targetLang,
@@ -124,7 +124,7 @@ export async function translateText(
   })
 
   console.log('🚀 ~ translateText ~ prompt:', prompt)
-  
+
   const result = await generateTextContent(prompt, 3)
   return result
 }

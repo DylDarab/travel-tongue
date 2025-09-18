@@ -1,6 +1,7 @@
 import { usersRouter } from '@/server/api/routers/users'
 import { scenariosRouter } from '@/server/api/routers/scenarios'
 import { phrasesRouter } from '@/server/api/routers/phrases'
+import { conversationRouter } from '@/server/api/routers/conversation'
 import { createCallerFactory, createTRPCRouter } from '@/server/api/trpc'
 
 /**
@@ -12,6 +13,7 @@ export const appRouter = createTRPCRouter({
   users: usersRouter,
   scenarios: scenariosRouter,
   phrases: phrasesRouter,
+  conversations: conversationRouter,
 })
 
 // export type definition of API

@@ -18,6 +18,8 @@ export interface Message {
   localDialogue: string
   timestamp: Date
   meta?: Record<string, unknown>
+  choices?: string[]
+  selectedChoice?: string
 }
 
 export const createTable = pgTableCreator((name) => `tt_${name}`)
@@ -93,7 +95,11 @@ export const conversations = createTable(
       .references(() => users.id, { onDelete: 'cascade' }),
 
     targetLang: d.varchar('target_lang', { length: 16 }).notNull(),
-    scenarioSnapshot: jsonb('scenario_snapshot'),
+    scenarioId: d
+      .uuid('scenario_id')
+      .references(() => scenarios.id, { onDelete: 'set null' }),
+    scenarioTitle: d.text('scenario_title').notNull(),
+    scenarioContext: d.text('scenario_context'),
     messages: jsonb('messages')
       .$type<Message[]>()
       .default(sql`'[]'::jsonb`)

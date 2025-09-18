@@ -10,6 +10,7 @@ interface InputSheetProps {
   recordingState: 'idle' | 'recording' | 'processing'
   onRecording: () => void
   onClose: () => void
+  replyOptions?: string[]
 }
 
 export default function InputSheet({
@@ -19,9 +20,28 @@ export default function InputSheet({
   recordingState,
   onRecording,
   onClose,
+  replyOptions = [],
 }: InputSheetProps) {
   return (
     <div className="fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white p-4">
+      {/* Reply options */}
+      {replyOptions.length > 0 && (
+        <div className="mb-3 space-y-2">
+          {replyOptions.map((option, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                onChange(option)
+                onSubmit()
+              }}
+              className="w-full rounded-lg bg-gray-50 p-2 text-left hover:bg-gray-100"
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center space-x-2">
         <div className="flex-1">
           <TextInput
