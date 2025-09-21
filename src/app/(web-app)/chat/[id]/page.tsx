@@ -1,6 +1,4 @@
 'use client'
-
-import { TopBar } from '@/app/_components/TopBar'
 import { useDeepgramLive } from '@/hooks/useDeepgramLive'
 import { nextState } from '@/lib/turnMachine'
 import { api } from '@/trpc/react'
@@ -22,6 +20,7 @@ import { SILENCE_TIMEOUT_MS } from './_constants'
 import { resolveSpeechLang, speakText } from './_hooks'
 import {
   type Events,
+  type Message,
   type PageProps,
   type RecordingState,
   type TurnState,
@@ -116,6 +115,7 @@ export default function ChatPage({ params }: PageProps) {
         msg.translatedText && msg.translatedText.trim().length > 0
           ? msg.translatedText
           : undefined,
+      language: msg.language ?? undefined,
       choices: undefined,
     }))
   }, [conversation?.messages])
@@ -434,10 +434,23 @@ export default function ChatPage({ params }: PageProps) {
     }
   }, [beginListening, haltListening, listening, turnState])
 
+  const handleRespeak = useCallback(
+    async (message: Message) => {
+      const textToSpeak = message.text.trim()
+      if (!textToSpeak) return
+
+      const languageCode = resolveSpeechLang(
+        message.language ?? conversation?.targetLanguage ?? 'ja-JP',
+      )
+
+      await speakText(textToSpeak, languageCode)
+    },
+    [conversation?.targetLanguage],
+  )
+
   if (isLoadingConversation) {
     return (
       <div className="flex h-screen flex-col bg-gray-50">
-        <TopBar title="Loading..." description="" backButton={true} />
         <div className="flex flex-1 items-center justify-center">
           <div className="text-gray-500">Loading conversation...</div>
         </div>
@@ -448,11 +461,6 @@ export default function ChatPage({ params }: PageProps) {
   if (!conversation) {
     return (
       <div className="flex h-screen flex-col bg-gray-50">
-        <TopBar
-          title="Conversation not found"
-          description=""
-          backButton={true}
-        />
         <div className="flex flex-1 items-center justify-center">
           <div className="text-gray-500">Conversation not found</div>
         </div>
@@ -462,16 +470,21 @@ export default function ChatPage({ params }: PageProps) {
 
   return (
     <div className="flex h-screen flex-col bg-gray-50">
-      <TopBar
-        title="Live Conversation"
-        description={statusText}
-        backButton={true}
-        menuItems={
+      <div className="border-b border-gray-200 bg-white px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-medium text-gray-900">
+              Live Conversation
+            </h1>
+            {statusText && (
+              <p className="mt-1 text-sm text-gray-500">{statusText}</p>
+            )}
+          </div>
           <button
             onClick={handleRecording}
             disabled={turnState === 'speaking_user'}
             className={clsx(
-              'min-h-[48px] min-w-[48px] rounded-full p-3 transition-colors hover:bg-gray-100 focus:ring-2 focus:ring-teal-500 focus:outline-none',
+              'min-h-[48px] min-w-[48px] rounded-full p-3 transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500',
               turnState === 'speaking_user' && 'opacity-50',
             )}
             aria-label={
@@ -490,11 +503,15 @@ export default function ChatPage({ params }: PageProps) {
               <Mic className="text-gray-600" size={20} />
             )}
           </button>
-        }
-      />
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 pt-20">
+        </div>
+      </div>
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            onRespeak={handleRespeak}
+          />
         ))}
 
         {turnState === 'listening_local' && interim && (

@@ -15,6 +15,7 @@ export const env = createEnv({
       .default('development'),
     OPENAI_API_KEY: z.string(),
     DEEPGRAM_API_KEY: z.string(),
+    GOOGLE_TRANSLATE_API_KEY: z.string(),
   },
 
   /**
@@ -37,6 +38,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     DEEPGRAM_API_KEY: process.env.DEEPGRAM_API_KEY,
+    GOOGLE_TRANSLATE_API_KEY: process.env.GOOGLE_TRANSLATE_API_KEY,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

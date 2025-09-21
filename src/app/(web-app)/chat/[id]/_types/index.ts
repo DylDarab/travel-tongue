@@ -6,6 +6,7 @@ export type Message = {
   sender: 'user' | 'ai'
   timestamp: Date
   translation?: string
+  language?: string | null
   choices?: Array<{
     id: string
     label: string

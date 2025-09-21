@@ -158,10 +158,10 @@ export async function generateReplies(
   const conversationHistory = conversation.messages
     .map((msg) => ({
       role: msg.role,
-      text: msg.localDialogue,
+      text: msg.translatedText,
       lang: msg.messageLang,
     }))
-    .slice(-10) // Get last 10 messages for context
+    .slice(-10)
 
   const prompt = GENERATE_ANSWER_CHOICES_PROMPT.replace(
     '{{conversationHistory}}',

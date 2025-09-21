@@ -1,8 +1,6 @@
 import { env } from '@/env'
 import OpenAI from 'openai'
 import type { z } from 'zod'
-import { replaceVariableInPrompt } from '@/utils/promptsUtils'
-import { TRANSLATE_PHRASE_PROMPT } from './prompts'
 
 const openai = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -112,19 +110,57 @@ export async function generateTextContent(
 export async function translateText(
   englishPhrase: string,
   targetLang: string,
-  context?: string,
+  _context?: string,
 ): Promise<string | null> {
   console.log('🚀 ~ translateText ~ targetLang:', targetLang)
   console.log('🚀 ~ translateText ~ englishPhrase:', englishPhrase)
+  try {
+    const response = await fetch(
+      `https://translation.googleapis.com/language/translate/v2?key=${env.GOOGLE_TRANSLATE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: englishPhrase,
+          target: targetLang,
+          format: 'text',
+        }),
+      },
+    )
 
-  const prompt = replaceVariableInPrompt(TRANSLATE_PHRASE_PROMPT, {
-    englishPhrase,
-    targetLang,
-    ...(context && { context }),
-  })
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(
+        `HTTP ${response.status} ${response.statusText}: ${errorText}`,
+      )
+    }
 
-  console.log('🚀 ~ translateText ~ prompt:', prompt)
+    const json = (await response.json()) as {
+      data?: { translations?: Array<{ translatedText: string }> }
+    }
 
-  const result = await generateTextContent(prompt, 3)
-  return result
+    const translatedText = json.data?.translations?.[0]?.translatedText
+    if (!translatedText) {
+      return null
+    }
+
+    return decodeHtmlEntities(translatedText)
+  } catch (error) {
+    console.error('Google Translate API error:', error)
+    return null
+  }
+}
+
+function decodeHtmlEntities(text: string) {
+  return text
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&#x2F;', '/')
+    .replaceAll('&#x60;', '`')
+    .replaceAll('&#x3D;', '=')
 }
