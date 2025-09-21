@@ -16,7 +16,7 @@ export async function generateContent<T>(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await openai.chat.completions.create({
-        model: 'gpt-4.1-mini',
+        model: 'gpt-4.1-nano',
         messages: [
           {
             role: 'user',
