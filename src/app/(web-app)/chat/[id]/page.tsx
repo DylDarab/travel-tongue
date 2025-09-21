@@ -85,8 +85,11 @@ export default function ChatPage({ params }: PageProps) {
   } = useDeepgramLive({ language: conversation?.targetLanguage ?? 'ja' })
 
   const recordingState: RecordingState = useMemo(() => {
-    if (turnState === 'speaking_user') return 'processing'
+    if (turnState === 'speaking_user' || turnState === 'processing_llm')
+      return 'processing'
+
     if (listening && turnState === 'listening_local') return 'recording'
+
     return 'idle'
   }, [listening, turnState])
 
@@ -219,6 +222,7 @@ export default function ChatPage({ params }: PageProps) {
 
           if (replies && replies.length > 0) {
             setLatestChoices(replies)
+            setIsReplyBarCollapsed(false)
           }
 
           void refetchConversation()
@@ -402,6 +406,7 @@ export default function ChatPage({ params }: PageProps) {
       targetAnswer: string
     }) => {
       void handleUserUtterance(reply.targetAnswer, reply.localAnswer)
+      setLatestChoices(null)
     },
     [handleUserUtterance],
   )
