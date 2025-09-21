@@ -12,6 +12,7 @@ interface AddPhraseModalProps {
   onOpenChange: (open: boolean) => void
   scenarioId?: string
   targetLang?: string
+  onSuccess?: () => void
 }
 
 const AddPhraseModal = ({
@@ -19,6 +20,7 @@ const AddPhraseModal = ({
   onOpenChange,
   scenarioId,
   targetLang,
+  onSuccess,
 }: AddPhraseModalProps) => {
   const [label, setLabel] = useState('')
   const [localDialogue, setLocalDialogue] = useState('')
@@ -92,11 +94,12 @@ const AddPhraseModal = ({
         label: label.trim(),
         localDialogue: localDialogue.trim(),
         targetDialogue: targetDialogue.trim(),
-        group: 'User custom group',
+        group: 'Custom',
       })
 
       resetForm()
       onOpenChange(false)
+      onSuccess?.()
     } catch (error) {
       console.error('Failed to add phrase:', error)
     }
