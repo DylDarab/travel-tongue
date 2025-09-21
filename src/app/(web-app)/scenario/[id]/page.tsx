@@ -125,23 +125,19 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
       />
       <div className="p-4 pt-20 pb-24">
         <div className="space-y-6">
-          {phraseGroups.map((section) => (
-            <div key={section.id} className="mb-6">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-medium text-gray-900">
-                  {section.title} ({section.phrases.length})
-                </h2>
-                <button className="flex items-center gap-1 text-gray-500 hover:text-gray-700">
-                  <span>↑</span>
-                </button>
+          <div className="mb-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">
+                {USER_CUSTOM_GROUP}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div onClick={() => setIsModalOpen(true)}>
+                <AddPhraseCard />
               </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {section.title === USER_CUSTOM_GROUP && (
-                  <div onClick={() => setIsModalOpen(true)}>
-                    <AddPhraseCard />
-                  </div>
-                )}
-                {section.phrases.map((phrase) => (
+              {phraseGroups
+                .find((group) => group.title === USER_CUSTOM_GROUP)
+                ?.phrases.map((phrase) => (
                   <PhraseCard
                     key={phrase.id}
                     label={phrase.label}
@@ -152,9 +148,36 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
                     disabled={isCreatingChat}
                   />
                 ))}
-              </div>
             </div>
-          ))}
+          </div>
+
+          {phraseGroups
+            .filter((group) => group.title !== USER_CUSTOM_GROUP)
+            .map((section) => (
+              <div key={section.id} className="mb-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-lg font-medium text-gray-900">
+                    {section.title} ({section.phrases.length})
+                  </h2>
+                  <button className="flex items-center gap-1 text-gray-500 hover:text-gray-700">
+                    <span>↑</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {section.phrases.map((phrase) => (
+                    <PhraseCard
+                      key={phrase.id}
+                      label={phrase.label}
+                      displayText={phrase.localDialogue}
+                      speakText={phrase.targetDialogue}
+                      speakLang={phrase.speakLang}
+                      onSend={() => handleSendPhrase(phrase)}
+                      disabled={isCreatingChat}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
         </div>
       </div>
       {scenario && (

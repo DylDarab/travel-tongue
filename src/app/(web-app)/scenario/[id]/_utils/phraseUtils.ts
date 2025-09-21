@@ -8,18 +8,21 @@ export function groupPhrasesByGroup(
   phrases: Phrase[],
   scenario: typeof scenarios.$inferSelect,
 ): PhraseGroup[] {
-  const groupedPhrases = phrases.reduce<GroupedPhrases>((acc, phrase) => {
+  const groupedPhrases: GroupedPhrases = {
+    [USER_CUSTOM_GROUP]: [],
+  }
+
+  phrases.forEach((phrase) => {
     const group = phrase.group ?? 'General'
-    acc[group] ??= []
-    acc[group].push({
+    groupedPhrases[group] ??= []
+    groupedPhrases[group].push({
       id: phrase.id,
       label: phrase.label,
       localDialogue: phrase.localDialogue,
       targetDialogue: phrase.targetDialogue,
       speakLang: scenario.targetLang,
     })
-    return acc
-  }, {} as GroupedPhrases)
+  })
 
   const groupedEntries = Object.entries(groupedPhrases)
 
