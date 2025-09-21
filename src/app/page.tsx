@@ -47,7 +47,9 @@ export default async function Home() {
               icon={<Shield />}
             />
           </div>
-          <GoogleSignIn />
+          <div className="mt-16">
+            <GoogleSignIn />
+          </div>
           <span className="mt-3 text-sm text-gray-500">
             Free to use • Privacy-focused • No PII collection
           </span>
