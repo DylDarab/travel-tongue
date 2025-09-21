@@ -36,10 +36,7 @@ export const useChatFlow = (): UseChatFlowReturn => {
   // tRPC hooks
   const createConversation = api.conversations.createConversation.useMutation()
   const addMessage = api.conversations.addMessage.useMutation()
-  const generateReplies = api.conversations.generateReplies.useQuery(
-    { conversationId: state.conversationId ?? '' },
-    { enabled: !!state.conversationId },
-  )
+  const generateReplies = api.conversations.generateReplies.useMutation()
 
   const initializeConversation = useCallback(async () => {
     if (state.isInitializing) return
@@ -77,12 +74,15 @@ export const useChatFlow = (): UseChatFlowReturn => {
         await addMessage.mutateAsync({
           conversationId: state.conversationId,
           text,
+          translatedText: text, // Default to original text if no translation is provided
           isUserMessage: true,
           language,
         })
 
         // Get reply options
-        await generateReplies.refetch()
+        await generateReplies.mutateAsync({
+          conversationId: state.conversationId,
+        })
         setState((prev) => ({ ...prev, isSending: false }))
       } catch (error) {
         console.error('Failed to send message:', error)
@@ -107,12 +107,15 @@ export const useChatFlow = (): UseChatFlowReturn => {
         await addMessage.mutateAsync({
           conversationId: state.conversationId,
           text: japanesePhrase,
+          translatedText: japanesePhrase, // Default to original text
           isUserMessage: true,
           language: 'ja',
         })
 
         // Get reply options
-        await generateReplies.refetch()
+        await generateReplies.mutateAsync({
+          conversationId: state.conversationId,
+        })
         setState((prev) => ({ ...prev, isSending: false }))
       } catch (error) {
         console.error('Failed to start conversation with phrase:', error)

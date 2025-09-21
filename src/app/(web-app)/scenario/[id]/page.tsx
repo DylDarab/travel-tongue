@@ -42,6 +42,7 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
         text: phrase.localDialogue,
         isUserMessage: true,
         language: 'ja',
+        translatedText: phrase.localDialogue,
       })
 
       router.push(`/chat/${conversation.id}`)
