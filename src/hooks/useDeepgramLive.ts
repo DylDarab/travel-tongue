@@ -112,16 +112,11 @@ export function useDeepgramLive(opts?: Options) {
         punctuate: opts?.punctuate ?? true,
         smart_format: opts?.smartFormat ?? true,
         encoding: opts?.encoding ?? 'opus',
+        endpointing: opts?.endpointing ?? 2500,
+        utterance_end_ms: opts?.utteranceEndMs ?? 1500,
+        no_delay: opts?.noDelay ?? true,
       }
-      if (opts?.endpointing !== undefined) {
-        liveOptions.endpointing = opts.endpointing
-      }
-      if (opts?.utteranceEndMs !== undefined) {
-        liveOptions.utterance_end_ms = opts.utteranceEndMs
-      }
-      if (opts?.noDelay !== undefined) {
-        liveOptions.no_delay = opts.noDelay
-      }
+
       const connection = client.listen.live(
         liveOptions,
       ) as unknown as LiveConnection

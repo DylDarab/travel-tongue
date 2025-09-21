@@ -155,26 +155,39 @@ export async function generateReplies(
     where: eq(users.id, userId),
   })
 
-  const conversationHistory = conversation.messages
-    .map((msg) => ({
-      role: msg.role,
-      text: msg.translatedText,
-      lang: msg.messageLang,
-    }))
-    .slice(-10)
+  const recentMessages = conversation.messages.slice(-10)
+  const baseTurnIndex = conversation.messages.length - recentMessages.length
+
+  const turns = recentMessages.map((msg, index) => ({
+    turn: baseTurnIndex + index + 1,
+    role: msg.role,
+    originalText: msg.localDialogue,
+    translatedText: msg.translatedText ?? msg.localDialogue,
+    language: msg.messageLang ?? conversation.targetLang,
+  }))
+
+  const latestLocalTurn =
+    [...turns].reverse().find((turn) => turn.role === 'local') ?? null
+  const latestUserTurn =
+    [...turns].reverse().find((turn) => turn.role === 'user') ?? null
+
+  const conversationState = {
+    scenario: {
+      title: conversation.scenarioTitle,
+      context: (conversation.scenarioContext ?? '').trim(),
+    },
+    targetLang: conversation.targetLang,
+    uiLang: 'en',
+    focus: {
+      latestLocal: latestLocalTurn,
+      latestUser: latestUserTurn,
+    },
+    turns,
+  }
 
   const prompt = GENERATE_ANSWER_CHOICES_PROMPT.replace(
-    '{{conversationHistory}}',
-    JSON.stringify(
-      {
-        scenario: conversation.scenarioContext ?? 'General conversation',
-        messages: conversationHistory,
-        targetLang: conversation.targetLang,
-        uiLang: 'en',
-      },
-      null,
-      2,
-    ),
+    '{{conversationState}}',
+    JSON.stringify(conversationState, null, 2),
   )
 
   const replies = await generateContent(

@@ -11,6 +11,7 @@ export async function generateContent<T>(
   validationSchema: z.ZodSchema,
   maxRetries = 3,
 ): Promise<T | null> {
+  console.log('🚀 ~ generateContent ~ prompt:', prompt)
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await openai.chat.completions.create({
@@ -71,6 +72,7 @@ export async function generateTextContent(
   prompt: string,
   maxRetries = 3,
 ): Promise<string | null> {
+  console.log('🚀 ~ generateTextContent ~ prompt:', prompt)
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await openai.chat.completions.create({

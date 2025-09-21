@@ -47,6 +47,7 @@ export default function ChatPage({ params }: PageProps) {
   const addMessageMutation = api.conversations.addMessage.useMutation()
   const generateRepliesMutation =
     api.conversations.generateReplies.useMutation()
+  const generateReplies = generateRepliesMutation.mutateAsync
 
   const {
     start,
@@ -198,17 +199,17 @@ export default function ChatPage({ params }: PageProps) {
       replyRequestIdRef.current = 0
     }
 
-    replyRequestIdRef.current += 1
-    const requestId = replyRequestIdRef.current
-
     if (messageCount === 0) {
-      setReplyChoices([])
+      setReplyChoices((previous) => (previous.length ? [] : previous))
       return
     }
 
+    replyRequestIdRef.current += 1
+    const requestId = replyRequestIdRef.current
+
     void (async () => {
       try {
-        const replies = await generateRepliesMutation.mutateAsync({
+        const replies = await generateReplies({
           conversationId,
         })
 
@@ -219,7 +220,7 @@ export default function ChatPage({ params }: PageProps) {
         console.error('Failed to generate reply options:', error)
       }
     })()
-  }, [conversationId, generateRepliesMutation, messageCount])
+  }, [conversationId, generateReplies, messageCount])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -277,6 +278,7 @@ export default function ChatPage({ params }: PageProps) {
   const handleReplyChipClick = useCallback(
     (reply: ReplyChoice) => {
       void handleUserUtterance(reply.targetAnswer, reply.localAnswer)
+      setReplyChoices([])
     },
     [handleUserUtterance],
   )
