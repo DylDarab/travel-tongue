@@ -2,9 +2,7 @@ import '@/styles/globals.css'
 
 import { type Metadata } from 'next'
 import { Geist } from 'next/font/google'
-import { SessionProvider } from 'next-auth/react'
-
-import { TRPCReactProvider } from '@/trpc/react'
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'Create T3 App',
@@ -24,10 +22,7 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body>
         <div className="mx-auto max-w-3xl">
-          {/* @ts-expect-error - SessionProvider is not a valid JSX element */}
-          <SessionProvider>
-            <TRPCReactProvider>{children}</TRPCReactProvider>
-          </SessionProvider>
+          <Providers>{children}</Providers>
         </div>
       </body>
     </html>
