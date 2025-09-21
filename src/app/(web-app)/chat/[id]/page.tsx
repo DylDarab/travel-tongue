@@ -13,7 +13,6 @@ import { ChevronDown, ChevronUp, Loader2, Mic, MicOff } from 'lucide-react'
 import { TopBar } from '@/app/_components/TopBar'
 import { api } from '@/trpc/react'
 import InputSheet from '../_components/InputSheet'
-import { TranslationPrompt } from '../_components/TranslationPrompt'
 import { useDeepgramLive } from '@/hooks/useDeepgramLive'
 import { nextState, type Events, type TurnState } from '@/lib/turnMachine'
 
@@ -22,6 +21,7 @@ type Message = {
   text: string
   sender: 'user' | 'ai'
   timestamp: Date
+  translation?: string
   choices?: Array<{
     id: string
     label: string
@@ -79,9 +79,6 @@ export default function ChatPage({ params }: PageProps) {
   const [inputValue, setInputValue] = useState('')
   const [showInputSheet, setShowInputSheet] = useState(false)
   const [isReplyBarCollapsed, setIsReplyBarCollapsed] = useState(false)
-  const [showTranslationPrompt, setShowTranslationPrompt] = useState(false)
-  const [detectedJapanese, setDetectedJapanese] = useState('')
-  const [translatedEnglish, setTranslatedEnglish] = useState('')
   const [turnState, dispatchTurn] = useReducer(
     (state: TurnState, event: Events) => nextState(state, event),
     'idle',
@@ -95,6 +92,7 @@ export default function ChatPage({ params }: PageProps) {
   const handlingFinalRef = useRef(false)
   const turnCounterRef = useRef(0)
   const pendingFinalRef = useRef<string | null>(null)
+  const manualPauseRef = useRef(false)
 
   const {
     data: conversation,
@@ -103,6 +101,13 @@ export default function ChatPage({ params }: PageProps) {
   } = api.conversations.getConversation.useQuery(
     { id: conversationId },
     { enabled: !!conversationId },
+  )
+
+  const { data: userProfile } = api.users.getUserProfile.useQuery()
+
+  const preferredLanguage = useMemo(
+    () => userProfile?.preferredLanguage ?? 'en',
+    [userProfile?.preferredLanguage],
   )
 
   const addMessage = api.conversations.addMessage.useMutation()
@@ -131,14 +136,33 @@ export default function ChatPage({ params }: PageProps) {
     [messages],
   )
 
+  const statusText = useMemo(() => {
+    if (turnState === 'speaking_user') return 'Playing response…'
+    if (turnState === 'processing_llm' || recordingState === 'processing') {
+      return 'Processing…'
+    }
+    if (turnState === 'listening_local' || recordingState === 'recording') {
+      return 'Recording…'
+    }
+    return ''
+  }, [recordingState, turnState])
+
   useEffect(() => {
-    if (conversation?.messages) {
-      const conversationMessages: Message[] = conversation.messages.map(
-        (msg) => ({
+    if (!conversation?.messages) return
+
+    setMessages((prev) => {
+      const previousById = new Map(prev.map((message) => [message.id, message]))
+
+      return conversation.messages.map((msg) => {
+        const mapped: Message = {
           id: msg.id,
           text: msg.text,
           sender: msg.isUserMessage ? 'user' : 'ai',
           timestamp: msg.timestamp,
+          translation:
+            msg.translatedText && msg.translatedText.trim().length > 0
+              ? msg.translatedText
+              : undefined,
           choices: msg.choices as
             | Array<{
                 id: string
@@ -147,10 +171,20 @@ export default function ChatPage({ params }: PageProps) {
                 targetAnswer: string
               }>
             | undefined,
-        }),
-      )
-      setMessages(conversationMessages)
-    }
+        }
+
+        const existing = previousById.get(mapped.id)
+
+        return {
+          ...mapped,
+          translation: mapped.translation ?? existing?.translation,
+          choices:
+            (mapped.choices && mapped.choices.length > 0
+              ? mapped.choices
+              : existing?.choices) ?? mapped.choices,
+        }
+      })
+    })
   }, [conversation])
 
   useEffect(() => {
@@ -180,6 +214,36 @@ export default function ChatPage({ params }: PageProps) {
     }, SILENCE_TIMEOUT_MS)
   }, [clearSilenceTimer, stop])
 
+  const beginListening = useCallback(async () => {
+    if (turnState === 'speaking_user' || listening) return
+
+    manualPauseRef.current = false
+    dispatchTurn({ type: 'TTS_START' })
+    dispatchTurn({ type: 'TTS_END' })
+    mute(false)
+    pendingFinalRef.current = null
+
+    try {
+      await start()
+      turnCounterRef.current += 1
+      lastProcessedFinalRef.current = null
+      handlingFinalRef.current = false
+      pendingFinalRef.current = null
+      clearFinals()
+    } catch (error) {
+      console.error('Failed to start listening:', error)
+      manualPauseRef.current = true
+      dispatchTurn({ type: 'ERROR' })
+    }
+  }, [clearFinals, listening, mute, start, turnState])
+
+  const haltListening = useCallback(() => {
+    manualPauseRef.current = true
+    clearSilenceTimer()
+    stop()
+    dispatchTurn({ type: 'RESET' })
+  }, [clearSilenceTimer, stop])
+
   const handleDeepgramFinal = useCallback(
     async (text: string) => {
       const transcript = text.trim()
@@ -194,45 +258,88 @@ export default function ChatPage({ params }: PageProps) {
 
       dispatchTurn({ type: 'DG_FINAL', text: transcript })
 
-      const localMessage: Message = {
-        id: crypto.randomUUID(),
-        text: transcript,
-        sender: 'ai',
-        timestamp: new Date(),
+      const provisionalId = `local-${crypto.randomUUID()}`
+      let currentMessageId = provisionalId
+      const now = new Date()
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: provisionalId,
+          text: transcript,
+          sender: 'ai',
+          timestamp: now,
+          translation: preferredLanguage ? 'Translating…' : undefined,
+        },
+      ])
+
+      const updateMessage = (updater: (message: Message) => Message) => {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === currentMessageId || message.id === provisionalId
+              ? updater(message)
+              : message,
+          ),
+        )
       }
 
-      setMessages((prev) => [...prev, localMessage])
-      setDetectedJapanese(transcript)
-      setTranslatedEnglish('Translating…')
-      setShowTranslationPrompt(true)
-
-      try {
-        const translation = await translateText.mutateAsync({
-          text: transcript,
-          targetLanguage: 'en',
-        })
-        setTranslatedEnglish(translation.translatedText)
-      } catch (error) {
-        console.error('Translation error:', error)
-        setTranslatedEnglish('Translation unavailable')
+      if (preferredLanguage) {
+        void (async () => {
+          try {
+            const { translatedText } = await translateText.mutateAsync({
+              text: transcript,
+              targetLanguage: preferredLanguage,
+            })
+            updateMessage((message) => ({
+              ...message,
+              translation: translatedText,
+            }))
+          } catch (error) {
+            console.error('Translation error:', error)
+            updateMessage((message) => ({
+              ...message,
+              translation: 'Translation unavailable',
+            }))
+          }
+        })()
       }
 
       if (conversationId) {
         try {
-          await addMessage.mutateAsync({
+          const savedMessage = await addMessage.mutateAsync({
             conversationId,
             text: transcript,
             isUserMessage: false,
             language: conversation?.targetLanguage ?? 'ja',
+            translatedText: translatedText,
           })
-          const replies = await generateReplies.mutateAsync({ conversationId })
-          setMessages((prev) => {
-            if (!prev.length) return prev
-            const updated = [...prev]
-            const lastIndex = updated.length - 1
-            updated[lastIndex] = { ...updated[lastIndex], choices: replies }
-            return updated
+
+          currentMessageId = savedMessage.id
+
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === provisionalId
+                ? {
+                    ...message,
+                    id: savedMessage.id,
+                    timestamp:
+                      savedMessage.createdAt instanceof Date
+                        ? savedMessage.createdAt
+                        : new Date(savedMessage.createdAt),
+                  }
+                : message,
+            ),
+          )
+
+          const replies = await generateReplies.mutateAsync({
+            conversationId,
           })
+
+          updateMessage((message) => ({
+            ...message,
+            choices: replies,
+          }))
+
           void refetchConversation()
         } catch (error) {
           console.error('Failed to process local reply:', error)
@@ -241,6 +348,7 @@ export default function ChatPage({ params }: PageProps) {
         }
       }
 
+      manualPauseRef.current = false
       dispatchTurn({ type: 'RESET' })
     },
     [
@@ -249,6 +357,7 @@ export default function ChatPage({ params }: PageProps) {
       conversation?.targetLanguage,
       conversationId,
       generateReplies,
+      preferredLanguage,
       refetchConversation,
       stop,
       translateText,
@@ -327,6 +436,22 @@ export default function ChatPage({ params }: PageProps) {
     scheduleSilenceTimer()
   }, [turnState, interim, scheduleSilenceTimer])
 
+  useEffect(() => {
+    if (!conversationId) return
+    if (isLoadingConversation) return
+    if (manualPauseRef.current) return
+    if (listening) return
+    if (turnState !== 'idle') return
+
+    void beginListening()
+  }, [
+    beginListening,
+    conversationId,
+    isLoadingConversation,
+    listening,
+    turnState,
+  ])
+
   const handleUserUtterance = useCallback(
     async (rawText: string) => {
       const text = rawText.trim()
@@ -402,6 +527,13 @@ export default function ChatPage({ params }: PageProps) {
       localAnswer: string
       targetAnswer: string
     }) => {
+      setMessages((prev) => {
+        if (!prev.length) return prev
+        const updated = [...prev]
+        const lastIndex = updated.length - 1
+        updated[lastIndex] = { ...updated[lastIndex], choices: undefined }
+        return updated
+      })
       void handleUserUtterance(reply.targetAnswer)
     },
     [handleUserUtterance],
@@ -420,40 +552,15 @@ export default function ChatPage({ params }: PageProps) {
     setInputValue('')
   }
 
-  const handleStartConversation = async (_translatedText: string) => {
-    setShowTranslationPrompt(false)
-  }
-
-  const handleDismissTranslation = () => {
-    setShowTranslationPrompt(false)
-    setDetectedJapanese('')
-    setTranslatedEnglish('')
-  }
-
-  const handleRecording = async () => {
+  const handleRecording = useCallback(async () => {
     if (turnState === 'speaking_user') return
 
     if (listening) {
-      stop()
-      dispatchTurn({ type: 'RESET' })
+      haltListening()
     } else {
-      dispatchTurn({ type: 'TTS_START' })
-      dispatchTurn({ type: 'TTS_END' })
-      mute(false)
-      pendingFinalRef.current = null
-      try {
-        await start()
-        turnCounterRef.current += 1
-        lastProcessedFinalRef.current = null
-        handlingFinalRef.current = false
-        pendingFinalRef.current = null
-        clearFinals()
-      } catch (error) {
-        console.error('Failed to start listening:', error)
-        dispatchTurn({ type: 'ERROR' })
-      }
+      await beginListening()
     }
-  }
+  }, [beginListening, haltListening, listening, turnState])
 
   if (isLoadingConversation) {
     return (
@@ -485,9 +592,7 @@ export default function ChatPage({ params }: PageProps) {
     <div className="flex h-screen flex-col bg-gray-50">
       <TopBar
         title="Live Conversation"
-        description={
-          interim && turnState === 'listening_local' ? 'Listening…' : ''
-        }
+        description={statusText}
         backButton={true}
         menuItems={
           <button
@@ -526,6 +631,17 @@ export default function ChatPage({ params }: PageProps) {
               }`}
             >
               <p>{message.text}</p>
+              {message.sender === 'ai' && message.translation && (
+                <p
+                  className={`mt-2 text-sm ${
+                    message.sender === 'user'
+                      ? 'text-teal-100'
+                      : 'text-teal-600'
+                  }`}
+                >
+                  {message.translation}
+                </p>
+              )}
               <span
                 className={`mt-1 block text-xs ${
                   message.sender === 'user' ? 'text-teal-100' : 'text-gray-500'
@@ -582,16 +698,6 @@ export default function ChatPage({ params }: PageProps) {
           </button>
         </div>
       </div>
-
-      {showTranslationPrompt && (
-        <TranslationPrompt
-          detectedJapanese={detectedJapanese}
-          translatedEnglish={translatedEnglish}
-          onDismiss={handleDismissTranslation}
-          onStartConversation={handleStartConversation}
-        />
-      )}
-
       {showInputSheet && (
         <InputSheet
           value={inputValue}

@@ -83,6 +83,7 @@ export async function addMessage(
     conversationId: string
     text: string
     isUserMessage: boolean
+    translatedText: string
     language?: string
   },
 ) {
@@ -98,7 +99,7 @@ export async function addMessage(
     id: crypto.randomUUID(),
     role: input.isUserMessage ? 'user' : 'local',
     messageLang: input.language ?? conversation.targetLang,
-    translatedText: '',
+    translatedText: input.translatedText,
     localDialogue: input.text,
     timestamp: new Date(),
     choices: input.isUserMessage ? [] : undefined,

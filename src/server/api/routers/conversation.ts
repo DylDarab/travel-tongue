@@ -53,6 +53,7 @@ export const conversationRouter = createTRPCRouter({
       z.object({
         conversationId: z.string().uuid(),
         text: z.string().min(1),
+        translatedText: z.string().min(1),
         isUserMessage: z.boolean(),
         language: z.string().optional(),
       }),
