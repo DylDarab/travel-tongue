@@ -146,6 +146,7 @@ export const conversationRouter = createTRPCRouter({
         z.object({
           id: z.string().uuid(),
           targetLanguage: z.string(),
+          scenarioId: z.string().uuid().nullable(),
           scenarioTitle: z.string(),
           scenarioContext: z.string().nullable(),
           createdAt: z.date(),
@@ -168,6 +169,7 @@ export const conversationRouter = createTRPCRouter({
       return result.map((conv) => ({
         id: conv.id,
         targetLanguage: conv.targetLanguage,
+        scenarioId: conv.scenarioId,
         scenarioTitle: conv.scenarioTitle,
         scenarioContext: conv.scenarioContext,
         createdAt: conv.createdAt,

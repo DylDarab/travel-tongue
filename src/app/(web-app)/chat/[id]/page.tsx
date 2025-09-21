@@ -334,7 +334,7 @@ export default function ChatPage({ params }: PageProps) {
   ])
 
   const handleUserUtterance = useCallback(
-    async (rawText: string) => {
+    async (rawText: string, translatedText?: string) => {
       const text = rawText.trim()
       if (!text || !conversationId) return
 
@@ -375,7 +375,7 @@ export default function ChatPage({ params }: PageProps) {
           text,
           isUserMessage: true,
           language: conversation?.targetLanguage ?? 'ja',
-          translatedText: text,
+          translatedText: translatedText ?? text,
         })
         void refetchConversation()
       } catch (error) {
@@ -401,7 +401,7 @@ export default function ChatPage({ params }: PageProps) {
       localAnswer: string
       targetAnswer: string
     }) => {
-      void handleUserUtterance(reply.targetAnswer)
+      void handleUserUtterance(reply.targetAnswer, reply.localAnswer)
     },
     [handleUserUtterance],
   )

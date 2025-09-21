@@ -1,4 +1,9 @@
-export type TurnState = 'idle' | 'speaking_user' | 'listening_local' | 'processing_llm' | 'error'
+export type TurnState =
+  | 'idle'
+  | 'speaking_user'
+  | 'listening_local'
+  | 'processing_llm'
+  | 'error'
 export type Events =
   | { type: 'TTS_START' }
   | { type: 'TTS_END' }

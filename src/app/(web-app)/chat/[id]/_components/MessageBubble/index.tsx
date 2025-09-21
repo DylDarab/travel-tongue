@@ -20,7 +20,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         })}
       >
         <p>{message.text}</p>
-        {message.sender !== 'user' && message.translation && (
+        {message.translation && (
           <p className="mt-2 text-sm text-teal-600">{message.translation}</p>
         )}
         <span

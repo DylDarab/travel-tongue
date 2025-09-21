@@ -232,6 +232,7 @@ export async function getHistory(userId: string, limit = 10) {
     .select({
       id: conversations.id,
       targetLanguage: conversations.targetLang,
+      scenarioId: conversations.scenarioId,
       scenarioTitle: conversations.scenarioTitle,
       scenarioContext: conversations.scenarioContext,
       createdAt: conversations.startedAt,

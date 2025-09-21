@@ -102,7 +102,8 @@ export function useDeepgramLive(opts?: Options) {
       const client = createClient({ accessToken })
       const languageOption = opts?.language ?? 'ja'
       const [languageCode] = languageOption.split('-')
-      const normalizedLanguage = languageCode && languageCode.trim().length > 0 ? languageCode : 'ja'
+      const normalizedLanguage =
+        languageCode && languageCode.trim().length > 0 ? languageCode : 'ja'
 
       const liveOptions: Record<string, unknown> = {
         model: opts?.model ?? 'nova-2',
