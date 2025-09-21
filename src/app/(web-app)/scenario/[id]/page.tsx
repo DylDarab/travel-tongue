@@ -2,6 +2,7 @@
 
 import { use } from 'react'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import PhraseCard from '@/app/(web-app)/_components/PhraseCard'
 import AddPhraseCard from '@/app/(web-app)/_components/AddPhraseCard'
 import AddPhraseModal from '@/app/(web-app)/_components/AddPhraseModal'
@@ -10,6 +11,7 @@ import { api } from '@/trpc/react'
 import { groupPhrasesByGroup } from './_utils/phraseUtils'
 import type { PhraseGroup } from './_utils/types'
 import { USER_CUSTOM_GROUP } from '@/constants'
+import { MessageCircle } from 'lucide-react'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -19,6 +21,35 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
   const { id } = use(params)
   const [phraseGroups, setPhraseGroups] = useState<PhraseGroup[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCreatingChat, setIsCreatingChat] = useState(false)
+  const router = useRouter()
+
+  const createConversation = api.conversations.createConversation.useMutation()
+  const addMessage = api.conversations.addMessage.useMutation()
+
+  const handleSendPhrase = async (phrase: { localDialogue: string }) => {
+    if (isCreatingChat) return
+
+    setIsCreatingChat(true)
+    try {
+      const conversation = await createConversation.mutateAsync({
+        targetLanguage: scenario?.targetLang ?? 'ja',
+        scenarioId: id,
+      })
+
+      await addMessage.mutateAsync({
+        conversationId: conversation.id,
+        text: phrase.localDialogue,
+        isUserMessage: true,
+        language: 'ja',
+      })
+
+      router.push(`/chat/${conversation.id}`)
+    } catch (error) {
+      console.error('Failed to create conversation:', error)
+      setIsCreatingChat(false)
+    }
+  }
 
   const { data: scenario, isLoading: isLoadingScenario } =
     api.scenarios.getScenario.useQuery(
@@ -124,6 +155,8 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
                         displayText={phrase.localDialogue}
                         speakText={phrase.targetDialogue}
                         speakLang={phrase.speakLang}
+                        onSend={() => handleSendPhrase(phrase)}
+                        disabled={isCreatingChat}
                       />
                     )
                   })}
@@ -133,6 +166,32 @@ const ScenarioDetailPage = ({ params }: PageProps) => {
           })}
         </div>
       </div>
+      {scenario && (
+        <button
+          className="fixed right-6 bottom-6 flex items-center gap-2 rounded-full bg-teal-500 px-4 py-3 font-semibold text-white shadow-lg transition-colors hover:bg-teal-600 focus:ring-2 focus:ring-teal-300 focus:outline-none disabled:opacity-50"
+          onClick={async () => {
+            if (isCreatingChat) return
+
+            setIsCreatingChat(true)
+            try {
+              const conversation = await createConversation.mutateAsync({
+                targetLanguage: scenario.targetLang ?? 'ja',
+                scenarioId: id,
+              })
+
+              router.push(`/chat/${conversation.id}`)
+            } catch (error) {
+              console.error('Failed to create conversation:', error)
+              setIsCreatingChat(false)
+            }
+          }}
+          disabled={isCreatingChat}
+          aria-label="Start conversation with this scenario"
+        >
+          <MessageCircle className="h-5 w-5" />
+          <span>{isCreatingChat ? 'Creating...' : 'Start'}</span>
+        </button>
+      )}
       <AddPhraseModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}

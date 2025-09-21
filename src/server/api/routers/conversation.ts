@@ -5,6 +5,7 @@ import {
   addMessage,
   generateReplies,
   getHistory,
+  getConversationById,
 } from '../services/conversationService'
 import { translateText } from '../services/llmService'
 
@@ -47,10 +48,6 @@ export const conversationRouter = createTRPCRouter({
       }
     }),
 
-  /**
-   * Adds a new message to an existing conversation
-   * @access Protected - requires authentication
-   */
   addMessage: protectedProcedure
     .input(
       z.object({
@@ -93,15 +90,50 @@ export const conversationRouter = createTRPCRouter({
         conversationId: z.string().uuid(),
       }),
     )
-    .output(z.array(z.string()).length(6))
-    .query(async ({ ctx, input }) => {
+    .output(
+      z
+        .array(
+          z.object({
+            id: z.string(),
+            label: z.string(),
+            localAnswer: z.string(),
+            targetAnswer: z.string(),
+          }),
+        )
+        .length(6),
+    )
+    .mutation(async ({ ctx, input }) => {
       return await generateReplies(ctx.session.user.id, input.conversationId)
     }),
 
-  /**
-   * Retrieves conversation history (for export only)
-   * @access Protected - requires authentication
-   */
+  getConversation: protectedProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .output(
+      z.object({
+        id: z.string().uuid(),
+        targetLanguage: z.string(),
+        scenarioId: z.string().uuid().nullable(),
+        scenarioTitle: z.string(),
+        scenarioContext: z.string().nullable(),
+        createdAt: z.date(),
+        messages: z.array(
+          z.object({
+            id: z.string().uuid(),
+            text: z.string(),
+            translatedText: z.string(),
+            isUserMessage: z.boolean(),
+            language: z.string().nullable(),
+            timestamp: z.date(),
+            choices: z.array(z.string()).optional(),
+            selectedChoice: z.string().optional(),
+          }),
+        ),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return await getConversationById(ctx.session.user.id, input.id)
+    }),
+
   getHistory: protectedProcedure
     .input(
       z.object({

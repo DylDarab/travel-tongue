@@ -32,12 +32,13 @@ export const useChatFlow = (): UseChatFlowReturn => {
     scenarioId,
   })
 
+  // Diagnostic logs for infinite loop debugging
   // tRPC hooks
   const createConversation = api.conversations.createConversation.useMutation()
   const addMessage = api.conversations.addMessage.useMutation()
   const generateReplies = api.conversations.generateReplies.useQuery(
     { conversationId: state.conversationId ?? '' },
-    { enabled: false },
+    { enabled: !!state.conversationId },
   )
 
   const initializeConversation = useCallback(async () => {

@@ -1,6 +1,5 @@
 'use client'
 
-import { Volume2 } from 'lucide-react'
 import { useState } from 'react'
 
 interface PhraseCardProps {
@@ -8,6 +7,8 @@ interface PhraseCardProps {
   displayText: string
   speakText: string
   speakLang: string
+  onSend?: () => void
+  disabled?: boolean
 }
 
 const PhraseCard: React.FC<PhraseCardProps> = ({
@@ -15,6 +16,8 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
   displayText,
   speakText,
   speakLang,
+  onSend,
+  disabled = false,
 }) => {
   const [isSpeaking, setIsSpeaking] = useState(false)
 
@@ -45,12 +48,25 @@ const PhraseCard: React.FC<PhraseCardProps> = ({
         <p className="text-lg font-medium text-gray-900">{label}</p>
         <p className="text-sm text-gray-600">{displayText}</p>
       </div>
-      <button
-        onClick={handleSpeak}
-        className={`min-h-[48px] min-w-[48px] touch-manipulation rounded-full p-3 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 ${isSpeaking ? 'animate-pulse' : ''}`}
-      >
-        <Volume2 className="h-6 w-6" />
-      </button>
+      <div className="mt-2 flex justify-end gap-2">
+        {onSend && (
+          <button
+            className="rounded bg-teal-100 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-200 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={onSend}
+            disabled={disabled}
+            aria-label={`Send "${label}" as reply`}
+          >
+            Send
+          </button>
+        )}
+        <button
+          className={`rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 ${isSpeaking ? 'animate-pulse' : ''}`}
+          onClick={handleSpeak}
+          aria-label={`Speak "${label}"`}
+        >
+          Speak
+        </button>
+      </div>
     </div>
   )
 }

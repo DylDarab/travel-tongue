@@ -29,7 +29,16 @@ interface AppMessage {
   selectedChoice?: string
 }
 
-const ReplySchema = z.array(z.string()).length(6)
+const ReplySchema = z
+  .array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      localAnswer: z.string(),
+      targetAnswer: z.string(),
+    }),
+  )
+  .length(6)
 
 export async function createConversation(
   userId: string,
@@ -125,7 +134,14 @@ export async function addMessage(
 export async function generateReplies(
   userId: string,
   conversationId: string,
-): Promise<string[]> {
+): Promise<
+  Array<{
+    id: string
+    label: string
+    localAnswer: string
+    targetAnswer: string
+  }>
+> {
   const conversation = await db.query.conversations.findFirst({
     where: eq(conversations.id, conversationId),
   })
@@ -170,7 +186,44 @@ export async function generateReplies(
     throw new Error('Failed to generate replies')
   }
 
-  return replies as string[]
+  return replies as Array<{
+    id: string
+    label: string
+    localAnswer: string
+    targetAnswer: string
+  }>
+}
+
+export async function getConversationById(
+  userId: string,
+  conversationId: string,
+) {
+  const conversation = await db.query.conversations.findFirst({
+    where: eq(conversations.id, conversationId),
+  })
+
+  if (!conversation || conversation.userId !== userId) {
+    throw new Error('Conversation not found or unauthorized')
+  }
+
+  return {
+    id: conversation.id,
+    targetLanguage: conversation.targetLang,
+    scenarioId: conversation.scenarioId,
+    scenarioTitle: conversation.scenarioTitle,
+    scenarioContext: conversation.scenarioContext,
+    createdAt: conversation.startedAt,
+    messages: conversation.messages.map((msg) => ({
+      id: msg.id,
+      text: msg.localDialogue,
+      translatedText: msg.translatedText,
+      isUserMessage: msg.role === 'user',
+      language: msg.messageLang,
+      timestamp: new Date(msg.timestamp),
+      choices: msg.choices,
+      selectedChoice: msg.selectedChoice,
+    })),
+  }
 }
 
 export async function getHistory(userId: string, limit = 10) {
@@ -196,7 +249,7 @@ export async function getHistory(userId: string, limit = 10) {
       translatedText: msg.translatedText,
       isUserMessage: msg.role === 'user',
       language: msg.messageLang,
-      timestamp: msg.timestamp,
+      timestamp: new Date(msg.timestamp),
       choices: msg.choices,
       selectedChoice: msg.selectedChoice,
     })),

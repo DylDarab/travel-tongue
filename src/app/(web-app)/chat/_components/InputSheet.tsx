@@ -32,7 +32,6 @@ export default function InputSheet({
               key={index}
               onClick={() => {
                 onChange(option)
-                onSubmit()
               }}
               className="w-full rounded-lg bg-gray-50 p-2 text-left hover:bg-gray-100"
             >
